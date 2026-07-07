@@ -150,12 +150,16 @@ data class StreamDelta(
     val content: String? = null,
     val role: String? = null,
     val reasoning_content: String? = null,
-    val thinking_content: String? = null
+    val thinking_content: String? = null,
+    val reasoning: String? = null,
+    val thought: String? = null
 )
 
 data class StreamMessage(
     val content: String? = null,
     val role: String? = null,
     val reasoning_content: String? = null,
-    val thinking_content: String? = null
+    val thinking_content: String? = null,
+    val reasoning: String? = null,
+    val thought: String? = null
 )

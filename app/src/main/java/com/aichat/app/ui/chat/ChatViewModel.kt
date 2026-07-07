@@ -317,67 +317,46 @@ class ChatViewModel @Inject constructor(
 
                         val choice = streamResponse.choices?.firstOrNull()
 
-                        choice?.delta?.content?.let { content ->
-                            fullMessage.append(content)
-                            repository.updateAssistantMessage(
-                                conversationId,
-                                assistantIndex,
-                                fullMessage.toString(),
-                                isStreaming = true,
-                                reasoningContent = fullReasoning.toString().takeIf { it.isNotEmpty() }
-                            )
-                        }
+                        if (choice != null) {
+                            val delta = choice.delta
+                            val message = choice.message
 
-                        choice?.delta?.reasoning_content?.let { reasoning ->
-                            fullReasoning.append(reasoning)
-                            repository.updateAssistantMessage(
-                                conversationId,
-                                assistantIndex,
-                                fullMessage.toString(),
-                                isStreaming = true,
-                                reasoningContent = fullReasoning.toString()
-                            )
-                        }
+                            val contentFromDelta = delta?.content
+                            val contentFromMessage = message?.content
 
-                        choice?.delta?.thinking_content?.let { reasoning ->
-                            fullReasoning.append(reasoning)
-                            repository.updateAssistantMessage(
-                                conversationId,
-                                assistantIndex,
-                                fullMessage.toString(),
-                                isStreaming = true,
-                                reasoningContent = fullReasoning.toString()
-                            )
-                        }
+                            val reasoningFromDelta = delta?.reasoning_content
+                                ?: delta?.thinking_content
+                                ?: delta?.reasoning
+                                ?: delta?.thought
 
-                        choice?.message?.reasoning_content?.let { reasoning ->
-                            if (reasoning.isNotEmpty() && fullReasoning.isEmpty()) {
-                                fullReasoning.append(reasoning)
-                                repository.updateAssistantMessage(
-                                    conversationId,
-                                    assistantIndex,
-                                    fullMessage.toString(),
-                                    isStreaming = true,
-                                    reasoningContent = fullReasoning.toString()
-                                )
+                            val reasoningFromMessage = message?.reasoning_content
+                                ?: message?.thinking_content
+                                ?: message?.reasoning
+                                ?: message?.thought
+
+                            if (contentFromDelta != null && contentFromDelta.isNotEmpty()) {
+                                fullMessage.append(contentFromDelta)
+                            } else if (contentFromMessage != null && contentFromMessage.isNotEmpty() && fullMessage.isEmpty()) {
+                                fullMessage.append(contentFromMessage)
                             }
-                        }
 
-                        choice?.message?.thinking_content?.let { reasoning ->
-                            if (reasoning.isNotEmpty() && fullReasoning.isEmpty()) {
-                                fullReasoning.append(reasoning)
-                                repository.updateAssistantMessage(
-                                    conversationId,
-                                    assistantIndex,
-                                    fullMessage.toString(),
-                                    isStreaming = true,
-                                    reasoningContent = fullReasoning.toString()
-                                )
+                            if (reasoningFromDelta != null && reasoningFromDelta.isNotEmpty()) {
+                                fullReasoning.append(reasoningFromDelta)
+                            } else if (reasoningFromMessage != null && reasoningFromMessage.isNotEmpty() && fullReasoning.isEmpty()) {
+                                fullReasoning.append(reasoningFromMessage)
                             }
-                        }
 
-                        if (choice?.finish_reason != null) {
-                            break
+                            repository.updateAssistantMessage(
+                                conversationId,
+                                assistantIndex,
+                                fullMessage.toString(),
+                                isStreaming = true,
+                                reasoningContent = fullReasoning.takeIf { it.isNotEmpty() }?.toString()
+                            )
+
+                            if (choice.finish_reason != null) {
+                                break
+                            }
                         }
                     }
                 }

@@ -194,17 +194,18 @@ fun ChatScreen(
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor()
-                                    .height(52.dp),
+                                    .menuAnchor(),
                                 shape = RoundedCornerShape(16.dp),
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                                     focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                textStyle = MaterialTheme.typography.bodyLarge
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                             ExposedDropdownMenu(
                                 expanded = endpointExpanded,
@@ -238,17 +239,18 @@ fun ChatScreen(
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor()
-                                    .height(52.dp),
+                                    .menuAnchor(),
                                 shape = RoundedCornerShape(16.dp),
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                                     focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                textStyle = MaterialTheme.typography.bodyLarge
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                             ExposedDropdownMenu(
                                 expanded = modelExpanded,
@@ -464,28 +466,31 @@ fun ChatScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             ExposedDropdownMenuBox(
-                                expanded = imageCountExpanded,
-                                onExpandedChange = { imageCountExpanded = it },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                OutlinedTextField(
-                                    value = "$imageCount 张",
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("数量", style = MaterialTheme.typography.bodySmall) },
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = imageCountExpanded) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor()
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    singleLine = true,
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent
-                                    ),
-                                    textStyle = MaterialTheme.typography.bodyMedium
-                                )
+                                    expanded = imageCountExpanded,
+                                    onExpandedChange = { imageCountExpanded = it },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    OutlinedTextField(
+                                        value = "$imageCount 张",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("数量", style = MaterialTheme.typography.bodySmall) },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = imageCountExpanded) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .menuAnchor(),
+                                        shape = RoundedCornerShape(12.dp),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                    )
                                 ExposedDropdownMenu(
                                     expanded = imageCountExpanded,
                                     onDismissRequest = { imageCountExpanded = false }
@@ -503,28 +508,31 @@ fun ChatScreen(
                             }
 
                             ExposedDropdownMenuBox(
-                                expanded = imageSizeExpanded,
-                                onExpandedChange = { imageSizeExpanded = it },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                OutlinedTextField(
-                                    value = imageSize,
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text("尺寸", style = MaterialTheme.typography.bodySmall) },
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = imageSizeExpanded) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .menuAnchor()
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    singleLine = true,
-                                    colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.Transparent,
-                                        unfocusedContainerColor = Color.Transparent
-                                    ),
-                                    textStyle = MaterialTheme.typography.bodyMedium
-                                )
+                                    expanded = imageSizeExpanded,
+                                    onExpandedChange = { imageSizeExpanded = it },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    OutlinedTextField(
+                                        value = imageSize,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("尺寸", style = MaterialTheme.typography.bodySmall) },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = imageSizeExpanded) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .menuAnchor(),
+                                        shape = RoundedCornerShape(12.dp),
+                                        singleLine = true,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                        ),
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                    )
                                 ExposedDropdownMenu(
                                     expanded = imageSizeExpanded,
                                     onDismissRequest = { imageSizeExpanded = false }
@@ -828,24 +836,22 @@ fun MessageBubble(message: Message) {
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = message.content.ifEmpty { "\u200B" },
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (isUser)
                             MaterialTheme.colorScheme.onPrimary
                         else
-                            MaterialTheme.colorScheme.onSurface
+                            MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
                     if (message.isStreaming) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .size(8.dp, 16.dp)
-                                .background(
-                                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-                                    shape = RoundedCornerShape(2.dp)
-                                )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
                         )
                     }
                 }
