@@ -21,18 +21,21 @@ class SettingsViewModel @Inject constructor(
     private val _endpoints = MutableStateFlow<List<ApiEndpoint>>(emptyList())
     val endpoints: StateFlow<List<ApiEndpoint>> = _endpoints.asStateFlow()
 
-    private val _announcement = MutableStateFlow<Pair<String, Boolean>?>(null)
-    val announcement: StateFlow<Pair<String, Boolean>?> = _announcement.asStateFlow()
+    private val _currentEndpoint = MutableStateFlow<ApiEndpoint?>(null)
+    val currentEndpoint: StateFlow<ApiEndpoint?> = _currentEndpoint.asStateFlow()
 
     private val _models = MutableStateFlow<List<String>>(emptyList())
     val models: StateFlow<List<String>> = _models.asStateFlow()
 
-    private val _currentBaseUrl = MutableStateFlow(apiManager.getBaseUrl())
-    val currentBaseUrl: StateFlow<String> = _currentBaseUrl.asStateFlow()
+    private val _isLoadingModels = MutableStateFlow(false)
+    val isLoadingModels: StateFlow<Boolean> = _isLoadingModels.asStateFlow()
+
+    private val _testResult = MutableStateFlow<Result<Int>?>(null)
+    val testResult: StateFlow<Result<Int>?> = _testResult.asStateFlow()
 
     init {
         loadEndpoints()
-        loadAnnouncement()
+        loadCurrentEndpoint()
     }
 
     private fun loadEndpoints() {
@@ -43,47 +46,60 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun loadAnnouncement() {
-        viewModelScope.launch {
-            val announcement = repository.getAnnouncement()
-            announcement?.let {
-                _announcement.value = Pair(it.content, it.enabled)
-            }
-        }
+    private fun loadCurrentEndpoint() {
+        _currentEndpoint.value = apiManager.getCurrentEndpoint()
     }
 
-    fun loadModels(endpoint: String? = null) {
+    fun loadModels() {
         viewModelScope.launch {
-            val models = repository.getModels(endpoint)
-            _models.value = models
+            _isLoadingModels.value = true
+            try {
+                val models = repository.getModels()
+                _models.value = models
+            } finally {
+                _isLoadingModels.value = false
+            }
         }
     }
 
     fun addEndpoint(name: String, url: String, apiKey: String) {
         viewModelScope.launch {
             apiManager.addEndpoint(name, url, apiKey)
+            loadCurrentEndpoint()
+        }
+    }
+
+    fun updateEndpoint(id: Long, name: String, url: String, apiKey: String) {
+        viewModelScope.launch {
+            apiManager.updateEndpoint(id, name, url, apiKey)
+            loadCurrentEndpoint()
         }
     }
 
     fun selectEndpoint(id: Long) {
         viewModelScope.launch {
             apiManager.selectEndpoint(id)
-            _currentBaseUrl.value = apiManager.getBaseUrl()
+            loadCurrentEndpoint()
+            _models.value = emptyList()
         }
     }
 
     fun deleteEndpoint(id: Long) {
         viewModelScope.launch {
             apiManager.deleteEndpoint(id)
+            loadCurrentEndpoint()
         }
     }
 
-    fun setBaseUrl(url: String) {
-        apiManager.updateBaseUrl(url)
-        _currentBaseUrl.value = url
+    fun testEndpoint(url: String, apiKey: String) {
+        viewModelScope.launch {
+            _testResult.value = null
+            val result = repository.testEndpoint(url, apiKey)
+            _testResult.value = result
+        }
     }
 
-    fun testConnection(url: String, apiKey: String): Boolean {
-        return true
+    fun clearTestResult() {
+        _testResult.value = null
     }
 }

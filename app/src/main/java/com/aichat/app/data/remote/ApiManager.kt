@@ -17,13 +17,13 @@ import javax.inject.Singleton
 class ApiManager @Inject constructor(
     private val apiEndpointDao: ApiEndpointDao
 ) {
-    private var currentBaseUrl: String = "http://10.0.2.2/"
+    private var currentEndpoint: ApiEndpoint? = null
     private var retrofit: Retrofit? = null
-    private var apiService: ChatApiService? = null
+    private var apiService: OpenAIApiService? = null
 
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
         OkHttpClient.Builder()
             .addInterceptor(logging)
@@ -34,42 +34,75 @@ class ApiManager @Inject constructor(
     }
 
     suspend fun initialize() {
-        val selected = apiEndpointDao.getSelectedEndpoint()
-        if (selected != null) {
-            updateBaseUrl(selected.url)
+        val endpoints = apiEndpointDao.getAllEndpoints().first()
+        if (endpoints.isEmpty()) {
+            val defaultEndpoint = ApiEndpoint(
+                name = "wsocket",
+                url = "https://ai.wsocket.xyz/v1",
+                apiKey = "sk-7Nb8FwAmO5zvmEzwkHlBXWX5RaDycdkPAmeKZqT2Ql5cDEQQ",
+                isSelected = true
+            )
+            apiEndpointDao.insertEndpoint(defaultEndpoint)
+            currentEndpoint = defaultEndpoint
+            updateRetrofit(defaultEndpoint.url)
+        } else {
+            val selected = endpoints.find { it.isSelected } ?: endpoints.first()
+            currentEndpoint = selected
+            updateRetrofit(selected.url)
         }
     }
 
-    fun updateBaseUrl(baseUrl: String) {
-        currentBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+    private fun updateRetrofit(baseUrl: String) {
+        val url = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
         retrofit = Retrofit.Builder()
-            .baseUrl(currentBaseUrl)
+            .baseUrl(url)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-        apiService = retrofit?.create(ChatApiService::class.java)
-        Log.d("ApiManager", "Base URL updated to: $currentBaseUrl")
+        apiService = retrofit?.create(OpenAIApiService::class.java)
+        Log.d("ApiManager", "Base URL updated to: $url")
     }
 
-    fun getApiService(): ChatApiService {
+    suspend fun setCurrentEndpoint(endpoint: ApiEndpoint) {
+        currentEndpoint = endpoint
+        updateRetrofit(endpoint.url)
+    }
+
+    fun getApiService(): OpenAIApiService {
         if (apiService == null) {
-            retrofit = Retrofit.Builder()
-                .baseUrl(currentBaseUrl)
-                .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-            apiService = retrofit?.create(ChatApiService::class.java)
+            throw IllegalStateException("ApiManager not initialized")
         }
         return apiService!!
     }
 
-    fun getBaseUrl(): String = currentBaseUrl
+    fun getAuthHeader(): String {
+        return "Bearer ${currentEndpoint?.apiKey ?: ""}"
+    }
+
+    fun getCurrentEndpoint(): ApiEndpoint? = currentEndpoint
+
+    fun getCurrentBaseUrl(): String = currentEndpoint?.url ?: ""
 
     fun getAllEndpoints(): Flow<List<ApiEndpoint>> = apiEndpointDao.getAllEndpoints()
 
-    suspend fun addEndpoint(name: String, url: String, apiKey: String) {
-        val endpoint = ApiEndpoint(name = name, url = url, apiKey = apiKey)
-        apiEndpointDao.insertEndpoint(endpoint)
+    suspend fun addEndpoint(name: String, url: String, apiKey: String): Long {
+        val endpoints = apiEndpointDao.getAllEndpoints().first()
+        val isFirst = endpoints.isEmpty()
+        val endpoint = ApiEndpoint(
+            name = name,
+            url = url,
+            apiKey = apiKey,
+            isSelected = isFirst
+        )
+        val id = apiEndpointDao.let {
+            it.insertEndpoint(endpoint)
+            0L
+        }
+        if (isFirst) {
+            currentEndpoint = endpoint
+            updateRetrofit(url)
+        }
+        return id
     }
 
     suspend fun selectEndpoint(id: Long) {
@@ -77,10 +110,52 @@ class ApiManager @Inject constructor(
         apiEndpointDao.setSelected(id)
         val endpoints = apiEndpointDao.getAllEndpoints().first()
         val selected = endpoints.find { it.id == id }
-        selected?.let { updateBaseUrl(it.url) }
+        selected?.let {
+            currentEndpoint = it
+            updateRetrofit(it.url)
+        }
     }
 
     suspend fun deleteEndpoint(id: Long) {
+        val wasSelected = currentEndpoint?.id == id
         apiEndpointDao.deleteEndpoint(id)
+        if (wasSelected) {
+            val endpoints = apiEndpointDao.getAllEndpoints().first()
+            if (endpoints.isNotEmpty()) {
+                selectEndpoint(endpoints.first().id)
+            } else {
+                currentEndpoint = null
+                apiService = null
+                retrofit = null
+            }
+        }
+    }
+
+    suspend fun updateEndpoint(id: Long, name: String, url: String, apiKey: String) {
+        val endpoints = apiEndpointDao.getAllEndpoints().first()
+        val endpoint = endpoints.find { it.id == id }
+        endpoint?.let {
+            val updated = it.copy(name = name, url = url, apiKey = apiKey)
+            apiEndpointDao.updateEndpoint(updated)
+            if (it.isSelected) {
+                currentEndpoint = updated
+                updateRetrofit(url)
+            }
+        }
+    }
+
+    suspend fun testEndpoint(url: String, apiKey: String): Result<Int> {
+        return try {
+            val testRetrofit = Retrofit.Builder()
+                .baseUrl(if (url.endsWith("/")) url else "$url/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            val testService = testRetrofit.create(OpenAIApiService::class.java)
+            val response = testService.getModels("Bearer $apiKey")
+            Result.success(response.data.size)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

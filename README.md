@@ -1,23 +1,25 @@
 # AI 聊天 Android App
 
-基于 PHP 后端 AI 聊天系统的 Android 客户端，使用 Kotlin + Jetpack Compose + Material 3 构建。
+一个纯本地运行的 AI 聊天 Android 应用，直接调用 OpenAI 兼容 API，无需外部 PHP 后端。所有数据本地存储，开箱即用。
 
 ## ✨ 功能特性
 
 ### 核心功能
-- 💬 **多对话管理** - 支持创建、删除、重命名多个独立对话
-- 🚀 **流式响应** - 实时流式接收 AI 回复，打字机效果
-- 🤖 **多模型支持** - 可切换不同的 AI 模型
-- 🔌 **多 API 端点** - 支持配置和切换多个 API 服务器端点
-- 🖼️ **图片生成** - 支持文生图，可配置尺寸和数量
-- 📱 **完美适配** - Material Design 3 设计语言，支持深色/浅色主题
+- 💬 **多对话管理** - 支持创建、删除、重命名多个独立对话（新窗口/多开）
+- 🚀 **流式响应** - 实时 SSE 流式接收 AI 回复，打字机效果
+- 🤖 **多模型支持** - 自动获取可用模型列表，一键切换
+- 🔌 **多 API 端点** - 支持添加/编辑/删除多个 API 服务器，快速切换
+- 🖼️ **图片生成** - 文生图 + 图生图，可配置尺寸、数量、质量、模型
+- 🎨 **Material Design 3** - 现代化 UI 设计，深色/浅色主题自动适配
+- 💾 **本地持久化** - Room 数据库存储所有对话历史，离线可查看
+- 🔐 **隐私安全** - 所有数据本地存储，API Key 仅保存在本地
 
 ### 用户体验
-- 🎨 **现代化 UI** - Jetpack Compose 声明式 UI，流畅动画
-- 🌓 **主题适配** - 自动跟随系统深色/浅色模式
+- 📱 **完美适配** - 响应式布局，适配各种屏幕尺寸
+- 🌓 **主题切换** - 自动跟随系统深色/浅色模式，支持动态取色
 - 📋 **侧边导航** - 抽屉式导航栏，快速切换功能模块
-- ⚡ **本地存储** - Room 数据库持久化对话历史
-- 🔄 **离线可用** - 本地缓存历史记录
+- ⚡ **流畅动画** - Jetpack Compose 声明式 UI，流畅过渡动画
+- 🧪 **连接测试** - 内置 API 连通性测试，一键验证配置
 
 ## 🛠️ 技术栈
 
@@ -26,13 +28,15 @@
 | **语言** | Kotlin |
 | **UI 框架** | Jetpack Compose + Material 3 |
 | **架构模式** | MVVM + Repository |
-| **依赖注入** | Hilt |
-| **网络请求** | Retrofit + OkHttp |
-| **本地数据库** | Room |
+| **依赖注入** | Hilt (Dagger) |
+| **网络请求** | Retrofit + OkHttp (直接调用 OpenAI 兼容 API) |
+| **本地数据库** | Room (SQLite) |
 | **异步处理** | Kotlin Coroutines + Flow |
 | **图片加载** | Coil |
 | **序列化** | Gson |
 | **构建工具** | Gradle KTS |
+| **最低 SDK** | API 26 (Android 8.0) |
+| **目标 SDK** | API 34 (Android 14) |
 
 ## 📁 项目结构
 
@@ -41,30 +45,30 @@ AIChatApp/
 ├── app/
 │   └── src/main/
 │       ├── java/com/aichat/app/
-│       │   ├── AIChatApplication.kt      # Application 类
+│       │   ├── AIChatApplication.kt      # Application 入口
 │       │   ├── data/
 │       │   │   ├── model/                # 数据模型
-│       │   │   │   └── Models.kt
-│       │   │   ├── local/                # 本地数据库
-│       │   │   │   ├── AppDatabase.kt
+│       │   │   │   └── Models.kt         # Conversation/Message/ApiEndpoint
+│       │   │   ├── local/                # 本地数据库层
+│       │   │   │   ├── AppDatabase.kt    # Room 数据库
 │       │   │   │   ├── ConversationDao.kt
 │       │   │   │   ├── MessageDao.kt
 │       │   │   │   └── ApiEndpointDao.kt
-│       │   │   ├── remote/               # 网络层
-│       │   │   │   ├── ChatApiService.kt
-│       │   │   │   └── ApiManager.kt
-│       │   │   └── repository/           # 数据仓库
-│       │   │       └── ChatRepository.kt
+│       │   │   ├── remote/               # 网络层 (OpenAI 兼容 API)
+│       │   │   │   ├── OpenAIApiService.kt  # API 接口定义
+│       │   │   │   └── ApiManager.kt     # 端点管理 + Retrofit 实例
+│       │   │   └── repository/           # 数据仓库层
+│       │   │       └── ChatRepository.kt # 业务逻辑封装
 │       │   ├── di/                       # 依赖注入
 │       │   │   └── AppModule.kt
 │       │   └── ui/
 │       │       ├── MainActivity.kt       # 主 Activity
-│       │       ├── AIChatApp.kt          # App 根组件
-│       │       ├── theme/                # 主题配置
+│       │       ├── AIChatApp.kt          # App 根组件 + 侧边导航
+│       │       ├── theme/                # Material 3 主题
 │       │       │   ├── Color.kt
 │       │       │   ├── Theme.kt
 │       │       │   └── Typography.kt
-│       │       ├── navigation/           # 导航
+│       │       ├── navigation/           # NavHost 导航
 │       │       │   └── NavGraph.kt
 │       │       ├── chat/                 # 聊天界面
 │       │       │   ├── ChatScreen.kt
@@ -73,14 +77,16 @@ AIChatApp/
 │       │       │   ├── ConversationsScreen.kt
 │       │       │   └── ConversationsViewModel.kt
 │       │       ├── imagegen/             # 图片生成
-│       │       │   └── ImageGenScreen.kt
+│       │       │   ├── ImageGenScreen.kt
+│       │       │   └── ImageGenViewModel.kt
 │       │       └── settings/             # 设置界面
 │       │           ├── SettingsScreen.kt
 │       │           └── SettingsViewModel.kt
 │       └── res/                          # 资源文件
 ├── build.gradle.kts
 ├── settings.gradle.kts
-└── gradle.properties
+├── gradle.properties
+└── README.md
 ```
 
 ## 🚀 快速开始
@@ -105,11 +111,13 @@ cd AIChatApp
    - 选择 `AIChatApp` 目录
    - 等待 Gradle 同步完成
 
-3. **配置 API 端点**
+3. **配置 API**
    - 启动 App
    - 打开侧边栏 → 设置
-   - 添加你的 PHP 后端地址（例如：`http://10.0.2.2/` 或你的服务器地址）
-   - 选中该端点
+   - 点击右下角「添加端点」
+   - 输入你的 API 信息（名称、地址、API Key）
+   - 点击端点切换为当前使用
+   - 点击「测试连接」验证是否可用
 
 4. **运行**
    - 连接 Android 设备或启动模拟器
@@ -118,96 +126,155 @@ cd AIChatApp
 ### 命令行构建
 
 ```bash
-# 调试版
+# 调试版 APK
 ./gradlew assembleDebug
+# 输出路径: app/build/outputs/apk/debug/app-debug.apk
 
-# 发布版
+# 发布版 APK (需要签名配置)
 ./gradlew assembleRelease
 
-# 安装到设备
+# 安装到已连接的设备
 ./gradlew installDebug
 ```
 
+### 兼容的 API 服务
+
+本应用兼容任何 OpenAI 格式的 API：
+- OpenAI 官方 API (`https://api.openai.com/v1`)
+- 第三方代理/中转服务
+- 自建 API 服务 (OneAPI、NewAPI、LM Studio 等)
+- 任何兼容 `/chat/completions` 和 `/images/generations` 格式的服务
+
 ## 🔌 API 接口说明
 
-App 对接 PHP 后端的以下接口：
+App 直接调用 OpenAI 兼容格式的 API，主要接口：
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `?action=get_endpoints` | GET | 获取 API 端点列表 |
-| `?action=get_announcement` | GET | 获取系统公告 |
-| `?action=get_models` | GET | 获取可用模型列表 |
-| `?action=chat` | POST | 非流式聊天 |
-| `?action=chat_stream` | POST | 流式聊天 (SSE) |
-| `?action=get_history` | POST | 获取对话历史 |
-| `?action=save_message` | POST | 保存消息 |
-| `?action=clear_conversation` | POST | 清空对话 |
-| `?action=upload` | POST | 上传文件/图片 |
-| `?action=image_generate` | POST | 图片生成 |
+| `/models` | GET | 获取可用模型列表 |
+| `/chat/completions` | POST | 聊天补全（流式/非流式） |
+| `/images/generations` | POST | 文生图 |
+| `/images/edits` | POST | 图生图（图片编辑） |
+
+所有请求在 Header 中携带 `Authorization: Bearer <API_KEY>`。
 
 ## 🎨 UI 设计
 
 ### 界面构成
-1. **对话列表页** - 展示所有历史对话，支持新建/删除/重命名
-2. **聊天页面** - 对话主界面，流式消息展示
-3. **图片生成页** - AI 绘图功能
-4. **设置页面** - API 端点管理、公告查看
+
+1. **对话列表页**
+   - 展示所有历史对话卡片
+   - 支持点击进入、重命名、删除
+   - 浮动按钮快速新建对话
+   - 自动以第一条消息生成标题
+
+2. **聊天页面**
+   - 气泡式消息展示
+   - AI 用户头像区分
+   - 流式打字机效果
+   - 生成中可随时停止
+   - 底部输入框，支持多行
+
+3. **图片生成页**
+   - 自定义提示词输入
+   - 模型选择 (gpt-image-2 / dall-e-3 / dall-e-2)
+   - 尺寸选择 (256x256 ~ 1792x1024)
+   - 数量选择 (1~10 张)
+   - 质量选择 (标准 / 高清)
+   - 网格展示生成结果
+
+4. **设置页面**
+   - 当前端点状态展示
+   - 端点管理（添加/编辑/删除/切换）
+   - 连接测试功能
+   - 模型列表加载展示
 
 ### 设计规范
-- 遵循 Material Design 3 规范
-- 紫色为主色调（Primary: #6750A4）
-- 圆润的卡片和按钮设计
+- Material Design 3 (Material You)
+- 紫色主色调 (Primary: #6750A4)
+- 圆角卡片 + 圆润按钮
 - 清晰的视觉层级
 - 流畅的过渡动画
+- 支持动态取色 (Android 12+)
 
-## 📝 功能详解
+## 💬 功能详解
 
-### 多对话管理
-- 每个对话独立存储，互不干扰
-- 可自定义对话标题
-- 一键新建对话
-- 支持删除和重命名
+### 多对话管理（新窗口/多开）
+- ✅ 每个对话完全独立，互不干扰
+- ✅ 可同时开启多个对话（通过对话列表切换）
+- ✅ 自定义对话标题
+- ✅ 自动生成标题（第一条消息前 20 字）
+- ✅ 一键新建对话
+- ✅ 支持删除和重命名
+- ✅ 按更新时间倒序排列
 
 ### 流式响应
-- SSE (Server-Sent Events) 实时接收
-- 打字机效果逐步展示回复
-- 支持随时停止生成
-- 生成中显示加载动画
+- ✅ SSE (Server-Sent Events) 实时接收
+- ✅ 打字机效果逐步展示回复
+- ✅ 支持随时停止生成
+- ✅ 生成中显示光标动画
+- ✅ 错误信息清晰展示
 
 ### API 端点管理
-- 支持添加多个 API 服务器
-- 一键切换端点
-- 本地存储配置
-- 自动选中当前端点
+- ✅ 支持添加多个 API 服务器
+- ✅ 一键切换当前端点
+- ✅ 端点信息本地加密存储
+- ✅ 连接测试功能（获取模型数量）
+- ✅ 编辑和删除端点
+- ✅ 预置默认端点（可删除）
 
 ### 图片生成
-- 支持自定义提示词
-- 可选图片尺寸（256x256 ~ 1792x1024）
-- 可选生成数量（1~10 张）
-- 网格展示生成结果
+- ✅ 文生图 (Text to Image)
+- ✅ 图生图 (Image to Image / Edit)
+- ✅ 自定义提示词
+- ✅ 可选尺寸：256x256 / 512x512 / 1024x1024 / 1024x1792 / 1792x1024
+- ✅ 可选数量：1~10 张
+- ✅ 可选质量：标准 / 高清 (HD)
+- ✅ 可选模型：gpt-image-2 / dall-e-3 / dall-e-2
+- ✅ 网格展示生成结果
+- ✅ 加载状态和错误提示
 
 ## 🔧 开发指南
 
-### 添加新功能
-1. 在 `data/model` 中添加数据模型
-2. 在 `data/local` 或 `data/remote` 添加数据源
-3. 在 `data/repository` 添加业务逻辑
-4. 在 `ui` 下创建对应 Screen 和 ViewModel
-5. 在 `navigation/NavGraph.kt` 注册路由
+### 架构设计
 
-### 数据层架构
 ```
-UI (Composable)
-    ↓
-ViewModel
-    ↓
-Repository
-    ↓
-┌───────┴───────┐
-│               │
-Local DB      Remote API
-(Room)       (Retrofit)
+UI Layer (Compose + ViewModel)
+           ↓
+  Repository Layer
+           ↓
+┌──────────┴──────────┐
+│                     │
+Local DB           Remote API
+ (Room)         (Retrofit/OkHttp)
 ```
+
+### 添加新功能
+
+1. 在 `data/model/Models.kt` 中添加数据模型
+2. 如需要本地存储，在 `data/local/` 添加 DAO
+3. 如需要网络请求，在 `data/remote/OpenAIApiService.kt` 添加接口
+4. 在 `data/repository/ChatRepository.kt` 封装业务逻辑
+5. 在 `ui/` 下创建对应 Screen 和 ViewModel
+6. 在 `ui/navigation/NavGraph.kt` 注册路由
+
+### 配置 API 地址
+
+在应用内动态配置，无需修改代码：
+- 打开侧边栏 → 设置
+- 添加或编辑 API 端点
+- 切换为当前端点即可生效
+
+## 📋 变更记录
+
+### v1.0.0
+- 🎉 初始版本发布
+- 💬 多对话管理（支持多个对话/新窗口）
+- 🚀 流式聊天响应
+- 🔌 多 API 端点管理
+- 🖼️ 图片生成（文生图 + 图生图）
+- 🎨 Material 3 UI + 深色/浅色主题
+- 💾 Room 本地数据持久化
 
 ## 📄 License
 
@@ -219,4 +286,4 @@ MIT License
 
 ---
 
-**注意**：本项目需要配合对应的 PHP 后端使用。请确保后端服务正常运行，并在 App 设置中配置正确的 API 地址。
+**本应用为纯本地客户端，所有对话数据保存在设备上。AI 能力由第三方 API 服务提供，需自行准备 API Key。**

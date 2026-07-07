@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aichat.app.data.model.Message
 import com.aichat.app.data.repository.ChatRepository
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,20 +19,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import javax.inject.Inject
-
-data class StreamResponse(
-    val choices: List<StreamChoice>?,
-    val error: String?
-)
-
-data class StreamChoice(
-    val delta: StreamDelta?,
-    val finish_reason: String?
-)
-
-data class StreamDelta(
-    val content: String?
-)
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -54,13 +38,15 @@ class ChatViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _currentModel = MutableStateFlow("gpt-3.5-turbo")
+    val currentModel: StateFlow<String> = _currentModel.asStateFlow()
+
     private var currentStreamJob: Job? = null
     private var streamCall: Call<ResponseBody>? = null
 
-    private val gson = Gson()
-
     init {
         loadMessages()
+        loadConversationInfo()
     }
 
     private fun loadMessages() {
@@ -71,13 +57,23 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendMessage(text: String, model: String = "gpt-3.5-turbo") {
+    private fun loadConversationInfo() {
+        viewModelScope.launch {
+            val conv = repository.getConversation(conversationId)
+            conv?.let {
+                _currentModel.value = it.model
+            }
+        }
+    }
+
+    fun sendMessage(text: String) {
         if (text.isBlank() || _isLoading.value) return
 
         _error.value = null
+        val model = _currentModel.value
 
         viewModelScope.launch {
-            val userIndex = repository.addUserMessage(conversationId, text)
+            repository.addUserMessage(conversationId, text)
             val assistantIndex = repository.addAssistantMessage(conversationId, "", isStreaming = true)
 
             _isLoading.value = true
@@ -111,7 +107,7 @@ class ChatViewModel @Inject constructor(
                     repository.updateAssistantMessage(
                         conversationId,
                         assistantIndex,
-                        "错误: ${e.message}",
+                        "错误: ${e.message ?: "未知错误"}",
                         isStreaming = false
                     )
                     _error.value = e.message
@@ -134,17 +130,17 @@ class ChatViewModel @Inject constructor(
                     val jsonData = dataLine.substring(6)
                     if (jsonData == "[DONE]") break
 
-                    try {
-                        val streamResponse = gson.fromJson(jsonData, StreamResponse::class.java)
+                    val streamResponse = repository.parseSseData(jsonData)
+                    if (streamResponse != null) {
                         if (streamResponse.error != null) {
-                            fullMessage.append("\n[错误: ${streamResponse.error}]")
+                            fullMessage.append("\n[错误: ${streamResponse.error.message}]")
                             repository.updateAssistantMessage(
                                 conversationId,
                                 assistantIndex,
                                 fullMessage.toString(),
                                 isStreaming = false
                             )
-                            _error.value = streamResponse.error
+                            _error.value = streamResponse.error.message
                             return
                         }
 
@@ -161,8 +157,6 @@ class ChatViewModel @Inject constructor(
                         if (streamResponse.choices?.firstOrNull()?.finish_reason != null) {
                             break
                         }
-                    } catch (e: Exception) {
-                        Log.e("ChatViewModel", "Parse error: $jsonData", e)
                     }
                 }
             }
@@ -191,6 +185,10 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             repository.clearConversation(conversationId)
         }
+    }
+
+    fun setModel(model: String) {
+        _currentModel.value = model
     }
 
     fun getConversationId(): String = conversationId

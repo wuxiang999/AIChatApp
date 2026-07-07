@@ -37,31 +37,45 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImageGenScreen() {
+fun ImageGenScreen(
+    viewModel: ImageGenViewModel = hiltViewModel()
+) {
+    val generatedImages by viewModel.generatedImages.collectAsStateWithLifecycle()
+    val isGenerating by viewModel.isGenerating.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+
     var prompt by remember { mutableStateOf("") }
     var count by remember { mutableIntStateOf(1) }
     var size by remember { mutableStateOf("1024x1024") }
-    var isGenerating by remember { mutableStateOf(false) }
-    var generatedImages by remember { mutableStateOf<List<String>>(emptyList()) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var model by remember { mutableStateOf("gpt-image-2") }
+    var quality by remember { mutableStateOf("standard") }
 
     val sizes = listOf("256x256", "512x512", "1024x1024", "1024x1792", "1792x1024")
-    var expandedSize by remember { mutableStateOf(false) }
-
     val counts = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val qualities = listOf("standard", "hd")
+    val models = listOf("gpt-image-2", "dall-e-3", "dall-e-2")
+
+    var expandedSize by remember { mutableStateOf(false) }
     var expandedCount by remember { mutableStateOf(false) }
+    var expandedQuality by remember { mutableStateOf(false) }
+    var expandedModel by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -77,7 +91,7 @@ fun ImageGenScreen() {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedTextField(
                 value = prompt,
@@ -91,8 +105,40 @@ fun ImageGenScreen() {
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedModel,
+                    onExpandedChange = { expandedModel = !expandedModel },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = model,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("模型") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModel)
+                        },
+                        modifier = Modifier.menuAnchor(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = expandedModel,
+                        onDismissRequest = { expandedModel = false }
+                    ) {
+                        models.forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text(m) },
+                                onClick = {
+                                    model = m
+                                    expandedModel = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 ExposedDropdownMenuBox(
                     expanded = expandedSize,
                     onExpandedChange = { expandedSize = !expandedSize },
@@ -109,10 +155,6 @@ fun ImageGenScreen() {
                         modifier = Modifier.menuAnchor(),
                         shape = RoundedCornerShape(12.dp)
                     )
-                    ExposedDropdownMenuBox(
-                        expanded = expandedSize,
-                        onExpandedChange = { expandedSize = it }
-                    ) {}
                     androidx.compose.material3.DropdownMenu(
                         expanded = expandedSize,
                         onDismissRequest = { expandedSize = false }
@@ -128,14 +170,19 @@ fun ImageGenScreen() {
                         }
                     }
                 }
+            }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 ExposedDropdownMenuBox(
                     expanded = expandedCount,
                     onExpandedChange = { expandedCount = !expandedCount },
                     modifier = Modifier.weight(1f)
                 ) {
                     OutlinedTextField(
-                        value = count.toString(),
+                        value = "$count 张",
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("数量") },
@@ -160,12 +207,51 @@ fun ImageGenScreen() {
                         }
                     }
                 }
+
+                ExposedDropdownMenuBox(
+                    expanded = expandedQuality,
+                    onExpandedChange = { expandedQuality = !expandedQuality },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = if (quality == "hd") "高清" else "标准",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("质量") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedQuality)
+                        },
+                        modifier = Modifier.menuAnchor(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = expandedQuality,
+                        onDismissRequest = { expandedQuality = false }
+                    ) {
+                        qualities.forEach { q ->
+                            DropdownMenuItem(
+                                text = { Text(if (q == "hd") "高清" else "标准") },
+                                onClick = {
+                                    quality = q
+                                    expandedQuality = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Button(
                 onClick = {
-                    isGenerating = true
-                    error = null
+                    scope.launch {
+                        viewModel.generateImage(
+                            prompt = prompt,
+                            n = count,
+                            size = size,
+                            model = model,
+                            quality = if (quality == "hd") "hd" else null
+                        )
+                    }
                 },
                 enabled = prompt.isNotBlank() && !isGenerating,
                 modifier = Modifier.fillMaxWidth(),
@@ -186,7 +272,7 @@ fun ImageGenScreen() {
                 }
             }
 
-            error?.let {
+            error?.let { err ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -195,7 +281,7 @@ fun ImageGenScreen() {
                     )
                 ) {
                     Text(
-                        text = it,
+                        text = err,
                         modifier = Modifier.padding(12.dp),
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -204,7 +290,7 @@ fun ImageGenScreen() {
 
             if (generatedImages.isNotEmpty()) {
                 Text(
-                    text = "生成结果",
+                    text = "生成结果 (${generatedImages.size} 张)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -212,7 +298,7 @@ fun ImageGenScreen() {
                     columns = GridCells.Fixed(2),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().weight(1f)
                 ) {
                     items(generatedImages) { imageUrl ->
                         Card(
