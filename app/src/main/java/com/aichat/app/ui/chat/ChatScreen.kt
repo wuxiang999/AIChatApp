@@ -67,6 +67,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,6 +104,7 @@ fun ChatScreen(
     onImageEditModeChange: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     var text by remember { mutableStateOf("") }
     var isImageMode by remember { mutableStateOf(false) }
     val selectedImageUris = remember { mutableStateListOf<String>() }
@@ -375,7 +377,10 @@ fun ChatScreen(
 
                         if (isLoading) {
                             IconButton(
-                                onClick = { onStopGeneration() },
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    onStopGeneration()
+                                },
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
@@ -388,6 +393,7 @@ fun ChatScreen(
                         } else {
                             IconButton(
                                 onClick = {
+                                    focusManager.clearFocus()
                                     if (isImageMode) {
                                         if (isImageEditMode && selectedImageUris.isNotEmpty() && text.isNotBlank()) {
                                             onEditImage(selectedImageUris.first(), text)

@@ -336,13 +336,15 @@ class ChatViewModel @Inject constructor(
 
                             if (contentFromDelta != null && contentFromDelta.isNotEmpty()) {
                                 fullMessage.append(contentFromDelta)
-                            } else if (contentFromMessage != null && contentFromMessage.isNotEmpty() && fullMessage.isEmpty()) {
+                            } else if (contentFromMessage != null && contentFromMessage.isNotEmpty()) {
+                                fullMessage.clear()
                                 fullMessage.append(contentFromMessage)
                             }
 
                             if (reasoningFromDelta != null && reasoningFromDelta.isNotEmpty()) {
                                 fullReasoning.append(reasoningFromDelta)
-                            } else if (reasoningFromMessage != null && reasoningFromMessage.isNotEmpty() && fullReasoning.isEmpty()) {
+                            } else if (reasoningFromMessage != null && reasoningFromMessage.isNotEmpty()) {
+                                fullReasoning.clear()
                                 fullReasoning.append(reasoningFromMessage)
                             }
 

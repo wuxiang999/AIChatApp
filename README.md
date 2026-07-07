@@ -97,6 +97,11 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v1.9.0
+- 🧠 修复思考模型 content 为空的问题：支持 `message` 格式完整内容替换
+- ⌨️ 发送消息后自动回收输入法（隐藏软键盘）
+- ⚡ 代码逻辑优化和 Bug 修复
+
 ### v1.8.0
 - 🖥️ 修复下拉菜单文本显示问题（API端点、模型、数量、尺寸）
 - 🧠 增强思考内容解析，支持多种字段名（reasoning_content、thinking_content、reasoning、thought）
