@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aichat.app.data.model.ApiEndpoint
 import com.aichat.app.data.model.Message
+import com.aichat.app.data.remote.ApiManager
 import com.aichat.app.data.repository.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val apiManager: ApiManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -47,6 +50,12 @@ class ChatViewModel @Inject constructor(
     private val _availableModels = MutableStateFlow<List<String>>(emptyList())
     val availableModels: StateFlow<List<String>> = _availableModels.asStateFlow()
 
+    private val _endpoints = MutableStateFlow<List<ApiEndpoint>>(emptyList())
+    val endpoints: StateFlow<List<ApiEndpoint>> = _endpoints.asStateFlow()
+
+    private val _currentEndpointId = MutableStateFlow<Long?>(null)
+    val currentEndpointId: StateFlow<Long?> = _currentEndpointId.asStateFlow()
+
     private var currentStreamJob: Job? = null
     private var streamCall: Call<ResponseBody>? = null
 
@@ -54,6 +63,23 @@ class ChatViewModel @Inject constructor(
         loadMessages()
         loadConversationInfo()
         loadModels()
+        loadEndpoints()
+    }
+
+    private fun loadEndpoints() {
+        viewModelScope.launch {
+            apiManager.getAllEndpoints().collect { endpointList ->
+                _endpoints.value = endpointList
+                _currentEndpointId.value = endpointList.find { it.isSelected }?.id
+            }
+        }
+    }
+
+    fun selectEndpoint(endpointId: Long) {
+        viewModelScope.launch {
+            apiManager.selectEndpoint(endpointId)
+            loadModels()
+        }
     }
 
     private fun loadMessages() {

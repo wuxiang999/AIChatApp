@@ -32,15 +32,10 @@ interface OpenAIApiService {
         @Body request: ChatRequest
     ): Call<ResponseBody>
 
-    @Multipart
     @POST("images/generations")
     suspend fun generateImage(
         @retrofit2.http.Header("Authorization") auth: String,
-        @Part("prompt") prompt: RequestBody,
-        @Part("n") n: RequestBody,
-        @Part("size") size: RequestBody,
-        @Part("model") model: RequestBody,
-        @Part("quality") quality: RequestBody? = null
+        @Body request: ImageGenerationRequest
     ): ImageGenerationResponse
 
     @Multipart
@@ -71,6 +66,14 @@ data class ChatRequest(
     val temperature: Float = 0.7f,
     val max_tokens: Int = 4096,
     val stream: Boolean = false
+)
+
+data class ImageGenerationRequest(
+    val prompt: String,
+    val model: String = "dall-e-3",
+    val n: Int = 1,
+    val size: String = "1024x1024",
+    val quality: String? = null
 )
 
 data class ChatMessage(

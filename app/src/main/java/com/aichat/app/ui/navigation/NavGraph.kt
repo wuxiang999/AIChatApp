@@ -75,6 +75,8 @@ fun AIChatNavHost(
             val error by viewModel.error.collectAsStateWithLifecycle()
             val currentModel by viewModel.currentModel.collectAsStateWithLifecycle()
             val availableModels by viewModel.availableModels.collectAsStateWithLifecycle()
+            val endpoints by viewModel.endpoints.collectAsStateWithLifecycle()
+            val currentEndpointId by viewModel.currentEndpointId.collectAsStateWithLifecycle()
 
             ChatScreen(
                 messages = messages,
@@ -82,6 +84,8 @@ fun AIChatNavHost(
                 error = error,
                 currentModel = currentModel,
                 availableModels = availableModels,
+                endpoints = endpoints,
+                currentEndpointId = currentEndpointId,
                 onSendMessage = { message, images ->
                     viewModel.sendMessage(message, images)
                 },
@@ -93,6 +97,9 @@ fun AIChatNavHost(
                 },
                 onModelChange = { model ->
                     viewModel.setModel(model)
+                },
+                onEndpointChange = { endpointId ->
+                    viewModel.selectEndpoint(endpointId)
                 },
                 onNewConversation = {
                     navController.navigate(Screen.NewChat.route)

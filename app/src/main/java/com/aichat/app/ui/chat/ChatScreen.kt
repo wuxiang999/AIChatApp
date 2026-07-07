@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
@@ -71,12 +72,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import com.aichat.app.data.model.Message
-
-import kotlinx.coroutines.launch
-
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.widget.Toast
+import coil.compose.AsyncImage
+import com.aichat.app.data.model.ApiEndpoint
+import com.aichat.app.data.model.Message
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,10 +89,13 @@ fun ChatScreen(
     error: String?,
     currentModel: String,
     availableModels: List<String>,
+    endpoints: List<ApiEndpoint>,
+    currentEndpointId: Long?,
     onSendMessage: (String, List<String>) -> Unit,
     onStopGeneration: () -> Unit,
     onClearConversation: () -> Unit,
     onModelChange: (String) -> Unit,
+    onEndpointChange: (Long) -> Unit,
     onNewConversation: () -> Unit
 ) {
     val context = LocalContext.current
@@ -100,6 +106,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var modelExpanded by remember { mutableStateOf(false) }
+    var endpointExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -159,6 +166,47 @@ fun ChatScreen(
                         .fillMaxWidth()
                         .padding(8.dp)
                 ) {
+                    // 端点选择器
+                    if (endpoints.isNotEmpty()) {
+                        ExposedDropdownMenuBox(
+                            expanded = endpointExpanded,
+                            onExpandedChange = { endpointExpanded = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("API端点") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = endpointExpanded,
+                                onDismissRequest = { endpointExpanded = false }
+                            ) {
+                                endpoints.forEach { endpoint ->
+                                    DropdownMenuItem(
+                                        text = { Text(endpoint.name) },
+                                        onClick = {
+                                            onEndpointChange(endpoint.id)
+                                            endpointExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
                     // 模型选择器
                     if (availableModels.isNotEmpty()) {
                         ExposedDropdownMenuBox(
@@ -443,6 +491,61 @@ fun MessageBubble(message: Message) {
     val isUser = message.role == "user"
     val imageUrls = message.imageUris?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
     var showReasoning by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    fun downloadImage(url: String) {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                if (url.startsWith("data:image")) {
+                    val base64Data = url.substringAfter("base64,")
+                    val decodedString = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    val fileName = "AI_生成图_${System.currentTimeMillis()}.png"
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                        put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                        put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/月下AI")
+                    }
+                    val uri = context.contentResolver.insert(
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                    )
+                    uri?.let {
+                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                            outputStream.write(decodedString)
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    val urlObj = java.net.URL(url)
+                    val connection = urlObj.openConnection()
+                    val inputStream = connection.getInputStream()
+                    val fileName = "AI_生成图_${System.currentTimeMillis()}.jpg"
+                    val values = android.content.ContentValues().apply {
+                        put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                        put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                        put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, "Pictures/月下AI")
+                    }
+                    val uri = context.contentResolver.insert(
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                    )
+                    uri?.let {
+                        context.contentResolver.openOutputStream(it)?.use { outputStream ->
+                            inputStream.copyTo(outputStream)
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "图片已保存到相册", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -577,6 +680,24 @@ fun MessageBubble(message: Message) {
                             modifier = Modifier.fillMaxWidth(),
                             contentScale = androidx.compose.ui.layout.ContentScale.Fit
                         )
+                    }
+                    if (!isUser) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            IconButton(
+                                onClick = { downloadImage(url) },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = "下载图片",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }

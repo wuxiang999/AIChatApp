@@ -12,6 +12,7 @@ import com.aichat.app.data.remote.ApiManager
 import com.aichat.app.data.remote.ChatMessage
 import com.aichat.app.data.remote.ChatRequest
 import com.aichat.app.data.remote.ContentPart
+import com.aichat.app.data.remote.ImageGenerationRequest
 import com.aichat.app.data.remote.ImageGenerationResponse
 import com.aichat.app.data.remote.ImageUrlData
 import com.aichat.app.data.remote.StreamResponse
@@ -265,24 +266,22 @@ class ChatRepository @Inject constructor(
         prompt: String,
         n: Int = 1,
         size: String = "1024x1024",
-        model: String = "gpt-image-2",
+        model: String = "dall-e-3",
         quality: String? = null
     ): Result<List<String>> {
         return withContext(Dispatchers.IO) {
             try {
-                val promptBody = prompt.toRequestBody("text/plain".toMediaType())
-                val nBody = n.toString().toRequestBody("text/plain".toMediaType())
-                val sizeBody = size.toRequestBody("text/plain".toMediaType())
-                val modelBody = model.toRequestBody("text/plain".toMediaType())
-                val qualityBody = quality?.toRequestBody("text/plain".toMediaType())
+                val request = ImageGenerationRequest(
+                    prompt = prompt,
+                    model = model,
+                    n = n,
+                    size = size,
+                    quality = quality
+                )
 
                 val response: ImageGenerationResponse = apiManager.getApiService().generateImage(
                     auth = apiManager.getAuthHeader(),
-                    prompt = promptBody,
-                    n = nBody,
-                    size = sizeBody,
-                    model = modelBody,
-                    quality = qualityBody
+                    request = request
                 )
 
                 if (response.error != null) {
