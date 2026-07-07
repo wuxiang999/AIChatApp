@@ -186,6 +186,7 @@ class ChatViewModel @Inject constructor(
 
     private suspend fun processStreamResponse(body: ResponseBody, assistantIndex: Int) {
         val fullMessage = StringBuilder()
+        val fullReasoning = StringBuilder()
         try {
             val reader = body.charStream().buffered()
             var line: String?
@@ -220,6 +221,17 @@ class ChatViewModel @Inject constructor(
                             )
                         }
 
+                        streamResponse.choices?.firstOrNull()?.delta?.reasoning_content?.let { reasoning ->
+                            fullReasoning.append(reasoning)
+                            repository.updateAssistantMessage(
+                                conversationId,
+                                assistantIndex,
+                                fullMessage.toString(),
+                                isStreaming = true,
+                                reasoningContent = fullReasoning.toString()
+                            )
+                        }
+
                         if (streamResponse.choices?.firstOrNull()?.finish_reason != null) {
                             break
                         }
@@ -233,7 +245,8 @@ class ChatViewModel @Inject constructor(
                 conversationId,
                 assistantIndex,
                 fullMessage.toString(),
-                isStreaming = false
+                isStreaming = false,
+                reasoningContent = fullReasoning.takeIf { it.isNotEmpty() }?.toString()
             )
             try {
                 body.close()

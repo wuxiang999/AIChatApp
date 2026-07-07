@@ -22,7 +22,8 @@ data class Message(
     val content: String,
     val timestamp: Date,
     val isStreaming: Boolean = false,
-    val imageUris: String? = null
+    val imageUris: String? = null,
+    val reasoningContent: String? = null
 )
 
 @Entity(tableName = "api_endpoints")

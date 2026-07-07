@@ -103,12 +103,14 @@ data class Choice(
 
 data class ResponseMessage(
     val role: String,
-    val content: String
+    val content: String,
+    val reasoning_content: String? = null
 )
 
 data class DeltaMessage(
     val role: String? = null,
-    val content: String? = null
+    val content: String? = null,
+    val reasoning_content: String? = null
 )
 
 data class ApiError(
@@ -142,5 +144,6 @@ data class StreamChoice(
 
 data class StreamDelta(
     val content: String? = null,
-    val role: String? = null
+    val role: String? = null,
+    val reasoning_content: String? = null
 )

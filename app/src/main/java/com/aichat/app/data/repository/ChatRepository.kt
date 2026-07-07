@@ -112,7 +112,7 @@ class ChatRepository @Inject constructor(
         return newIndex
     }
 
-    suspend fun addAssistantMessage(conversationId: String, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList()): Int {
+    suspend fun addAssistantMessage(conversationId: String, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList(), reasoningContent: String? = null): Int {
         val maxIndex = messageDao.getMaxIndexForConversation(conversationId)
         val newIndex = (maxIndex ?: -1) + 1
         val message = Message(
@@ -123,16 +123,21 @@ class ChatRepository @Inject constructor(
             timestamp = Date(),
             isStreaming = isStreaming,
             imageUris = imageUrls.joinToString(",")
+                .takeIf { it.isNotEmpty() },
+            reasoningContent = reasoningContent
         )
         messageDao.insertMessage(message)
         updateConversationTimestamp(conversationId)
         return newIndex
     }
 
-    suspend fun updateAssistantMessage(conversationId: String, index: Int, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList()) {
+    suspend fun updateAssistantMessage(conversationId: String, index: Int, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList(), reasoningContent: String? = null) {
         messageDao.updateMessageContent(conversationId, index, content, isStreaming)
         if (imageUrls.isNotEmpty()) {
             messageDao.updateMessageImages(conversationId, index, imageUrls.joinToString(","))
+        }
+        if (reasoningContent != null) {
+            messageDao.updateMessageReasoning(conversationId, index, reasoningContent)
         }
         updateConversationTimestamp(conversationId)
     }

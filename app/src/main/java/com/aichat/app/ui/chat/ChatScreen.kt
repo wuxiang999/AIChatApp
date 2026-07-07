@@ -19,16 +19,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,17 +57,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.aichat.app.data.model.Message
+
+import kotlinx.coroutines.launch
+
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,17 +92,46 @@ fun ChatScreen(
     onModelChange: (String) -> Unit,
     onNewConversation: () -> Unit
 ) {
+    val context = LocalContext.current
     var text by remember { mutableStateOf("") }
     var isImageMode by remember { mutableStateOf(false) }
     val selectedImageUris = remember { mutableStateListOf<String>() }
+    val selectedFileContents = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var modelExpanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let { selectedImageUris.add(it.toString()) }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { fileUri ->
+            try {
+                val inputStream = context.contentResolver.openInputStream(fileUri)
+                inputStream?.bufferedReader()?.use { reader ->
+                    val content = reader.readText()
+                    if (content.length > 50000) {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar("文件内容过长，请选择小于50KB的文件")
+                        }
+                    } else {
+                        val fileName = fileUri.lastPathSegment ?: "unknown.txt"
+                        selectedFileContents.add("📄 $fileName:\n$content")
+                        text = "${text}${if (text.isNotEmpty()) "\n" else ""}📄 $fileName\n"
+                    }
+                }
+            } catch (e: Exception) {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("读取文件失败: ${e.message}")
+                }
+            }
+        }
     }
 
     LaunchedEffect(messages.size, isLoading) {
@@ -209,6 +249,18 @@ fun ChatScreen(
                             )
                         }
 
+                        // 文件上传按钮
+                        IconButton(
+                            onClick = { filePickerLauncher.launch("*/*") },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AttachFile,
+                                contentDescription = "上传文件",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
                         // 图片生成模式切换
                         IconButton(
                             onClick = { isImageMode = !isImageMode },
@@ -258,17 +310,24 @@ fun ChatScreen(
                         } else {
                             IconButton(
                                 onClick = {
-                                    if (text.isNotBlank()) {
+                                    if (text.isNotBlank() || selectedFileContents.isNotEmpty()) {
                                         if (isImageMode) {
                                             onSendMessage("/img $text", emptyList())
                                         } else {
-                                            onSendMessage(text, selectedImageUris.toList())
+                                            val fullText = buildString {
+                                                append(text)
+                                                selectedFileContents.forEach { fileContent ->
+                                                    append("\n\n").append(fileContent)
+                                                }
+                                            }
+                                            onSendMessage(fullText, selectedImageUris.toList())
                                             selectedImageUris.clear()
+                                            selectedFileContents.clear()
                                         }
                                         text = ""
                                     }
                                 },
-                                enabled = text.isNotBlank(),
+                                enabled = text.isNotBlank() || selectedFileContents.isNotEmpty(),
                                 modifier = Modifier.size(48.dp)
                             ) {
                                 Icon(
@@ -299,6 +358,8 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            ParticleBackground(modifier = Modifier.fillMaxSize())
+            
             if (messages.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -381,6 +442,7 @@ fun ChatScreen(
 fun MessageBubble(message: Message) {
     val isUser = message.role == "user"
     val imageUrls = message.imageUris?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+    var showReasoning by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -445,6 +507,55 @@ fun MessageBubble(message: Message) {
                                     shape = RoundedCornerShape(2.dp)
                                 )
                         )
+                    }
+                }
+            }
+
+            // 展示思考内容
+            if (!isUser && message.reasoningContent != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lightbulb,
+                                contentDescription = "思考",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "思考过程",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(onClick = { showReasoning = !showReasoning }) {
+                                Icon(
+                                    imageVector = if (showReasoning) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (showReasoning) "收起" else "展开",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                        if (showReasoning) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = message.reasoningContent,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f)
+                            )
+                        }
                     }
                 }
             }

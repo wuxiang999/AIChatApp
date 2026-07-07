@@ -29,4 +29,7 @@ interface MessageDao {
 
     @Query("UPDATE messages SET imageUris = :imageUris WHERE conversationId = :conversationId AND `index` = :index")
     suspend fun updateMessageImages(conversationId: String, index: Int, imageUris: String)
+
+    @Query("UPDATE messages SET reasoningContent = :reasoningContent WHERE conversationId = :conversationId AND `index` = :index")
+    suspend fun updateMessageReasoning(conversationId: String, index: Int, reasoningContent: String)
 }
