@@ -35,11 +35,17 @@ class ChatViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isGeneratingImage = MutableStateFlow(false)
+    val isGeneratingImage: StateFlow<Boolean> = _isGeneratingImage.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private val _currentModel = MutableStateFlow("gpt-3.5-turbo")
     val currentModel: StateFlow<String> = _currentModel.asStateFlow()
+
+    private val _availableModels = MutableStateFlow<List<String>>(emptyList())
+    val availableModels: StateFlow<List<String>> = _availableModels.asStateFlow()
 
     private var currentStreamJob: Job? = null
     private var streamCall: Call<ResponseBody>? = null
@@ -47,6 +53,7 @@ class ChatViewModel @Inject constructor(
     init {
         loadMessages()
         loadConversationInfo()
+        loadModels()
     }
 
     private fun loadMessages() {
@@ -66,14 +73,33 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun sendMessage(text: String) {
-        if (text.isBlank() || _isLoading.value) return
+    private fun loadModels() {
+        viewModelScope.launch {
+            try {
+                val models = repository.getModels()
+                _availableModels.value = models
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "loadModels error", e)
+            }
+        }
+    }
+
+    fun sendMessage(text: String, imageUris: List<String> = emptyList()) {
+        if (text.isBlank() && imageUris.isEmpty()) return
+        if (_isLoading.value || _isGeneratingImage.value) return
+
+        // 检测图片生成命令 /img
+        if (text.startsWith("/img ")) {
+            val prompt = text.removePrefix("/img ").trim()
+            generateImage(prompt)
+            return
+        }
 
         _error.value = null
         val model = _currentModel.value
 
         viewModelScope.launch {
-            repository.addUserMessage(conversationId, text)
+            repository.addUserMessage(conversationId, text, imageUris)
             val assistantIndex = repository.addAssistantMessage(conversationId, "", isStreaming = true)
 
             _isLoading.value = true
@@ -83,6 +109,7 @@ class ChatViewModel @Inject constructor(
                     val call = repository.sendMessageStream(
                         conversationId = conversationId,
                         message = text,
+                        imageUris = imageUris,
                         model = model
                     )
                     streamCall = call
@@ -113,6 +140,45 @@ class ChatViewModel @Inject constructor(
                     _error.value = e.message
                 } finally {
                     _isLoading.value = false
+                }
+            }
+        }
+    }
+
+    fun generateImage(prompt: String) {
+        if (prompt.isBlank() || _isGeneratingImage.value) return
+
+        _error.value = null
+
+        viewModelScope.launch {
+            repository.addUserMessage(conversationId, "生成图片: $prompt")
+            val assistantIndex = repository.addAssistantMessage(conversationId, "正在生成图片...", isStreaming = true)
+            _isGeneratingImage.value = true
+
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = repository.generateImage(prompt = prompt, n = 1, size = "1024x1024")
+                    result.onSuccess { urls ->
+                        repository.updateAssistantMessage(
+                            conversationId, assistantIndex,
+                            "图片生成完成", isStreaming = false, imageUrls = urls
+                        )
+                    }.onFailure { error ->
+                        repository.updateAssistantMessage(
+                            conversationId, assistantIndex,
+                            "图片生成失败: ${error.message}", isStreaming = false
+                        )
+                        _error.value = error.message
+                    }
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "generateImage error", e)
+                    repository.updateAssistantMessage(
+                        conversationId, assistantIndex,
+                        "图片生成错误: ${e.message}", isStreaming = false
+                    )
+                    _error.value = e.message
+                } finally {
+                    _isGeneratingImage.value = false
                 }
             }
         }
@@ -179,6 +245,7 @@ class ChatViewModel @Inject constructor(
         streamCall?.cancel()
         currentStreamJob?.cancel()
         _isLoading.value = false
+        _isGeneratingImage.value = false
     }
 
     fun clearConversation() {
@@ -189,6 +256,9 @@ class ChatViewModel @Inject constructor(
 
     fun setModel(model: String) {
         _currentModel.value = model
+        viewModelScope.launch {
+            repository.updateConversationModel(conversationId, model)
+        }
     }
 
     fun getConversationId(): String = conversationId

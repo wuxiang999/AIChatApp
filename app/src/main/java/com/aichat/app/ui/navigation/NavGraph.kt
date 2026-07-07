@@ -19,7 +19,6 @@ import com.aichat.app.ui.chat.ChatScreen
 import com.aichat.app.ui.chat.ChatViewModel
 import com.aichat.app.ui.conversations.ConversationsScreen
 import com.aichat.app.ui.conversations.ConversationsViewModel
-import com.aichat.app.ui.imagegen.ImageGenScreen
 import com.aichat.app.ui.settings.SettingsScreen
 import kotlinx.coroutines.delay
 
@@ -29,7 +28,6 @@ sealed class Screen(val route: String) {
         fun createRoute(conversationId: String) = "chat/$conversationId"
     }
     object NewChat : Screen("new_chat")
-    object ImageGen : Screen("image_gen")
     object Settings : Screen("settings")
 }
 
@@ -75,19 +73,26 @@ fun AIChatNavHost(
             val messages by viewModel.messages.collectAsStateWithLifecycle()
             val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
             val error by viewModel.error.collectAsStateWithLifecycle()
+            val currentModel by viewModel.currentModel.collectAsStateWithLifecycle()
+            val availableModels by viewModel.availableModels.collectAsStateWithLifecycle()
 
             ChatScreen(
                 messages = messages,
                 isLoading = isLoading,
                 error = error,
-                onSendMessage = { message ->
-                    viewModel.sendMessage(message)
+                currentModel = currentModel,
+                availableModels = availableModels,
+                onSendMessage = { message, images ->
+                    viewModel.sendMessage(message, images)
                 },
                 onStopGeneration = {
                     viewModel.stopGeneration()
                 },
                 onClearConversation = {
                     viewModel.clearConversation()
+                },
+                onModelChange = { model ->
+                    viewModel.setModel(model)
                 },
                 onOpenDrawer = onOpenDrawer
             )
@@ -110,11 +115,6 @@ fun AIChatNavHost(
             ) {
                 CircularProgressIndicator()
             }
-        }
-
-        composable(Screen.ImageGen.route) {
-            onRouteChange(Screen.ImageGen.route)
-            ImageGenScreen()
         }
 
         composable(Screen.Settings.route) {

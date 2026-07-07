@@ -26,4 +26,7 @@ interface MessageDao {
 
     @Query("UPDATE messages SET content = :content, isStreaming = :isStreaming WHERE conversationId = :conversationId AND `index` = :index")
     suspend fun updateMessageContent(conversationId: String, index: Int, content: String, isStreaming: Boolean)
+
+    @Query("UPDATE messages SET imageUris = :imageUris WHERE conversationId = :conversationId AND `index` = :index")
+    suspend fun updateMessageImages(conversationId: String, index: Int, imageUris: String)
 }

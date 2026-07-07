@@ -11,7 +11,6 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Streaming
-import retrofit2.http.Url
 
 interface OpenAIApiService {
 
@@ -77,6 +76,16 @@ data class ChatRequest(
 data class ChatMessage(
     val role: String,
     val content: Any
+)
+
+data class ContentPart(
+    val type: String,
+    val text: String? = null,
+    val image_url: ImageUrlData? = null
+)
+
+data class ImageUrlData(
+    val url: String
 )
 
 data class ChatCompletionResponse(

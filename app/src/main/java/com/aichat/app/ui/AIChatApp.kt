@@ -3,15 +3,21 @@ package com.aichat.app.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,7 +39,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.aichat.app.ui.navigation.AIChatNavHost
@@ -44,9 +53,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AIChatApp() {
     val navController = rememberNavController()
-    val drawerState = rememberDrawerState(
-        androidx.compose.material3.DrawerValue.Closed
-    )
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var currentRoute by remember { mutableStateOf<String?>(Screen.ChatList.route) }
 
@@ -63,13 +70,40 @@ fun AIChatApp() {
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "月下AI",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                IconButton(
+                                    onClick = {
+                                        scope.launch { drawerState.close() }
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "关闭侧边栏",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "AI 聊天",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "本地AI聊天助手",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
-                            androidx.compose.material3.Divider()
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Divider()
 
                             NavigationDrawerItem(
                                 label = { Text("对话列表") },
@@ -80,17 +114,6 @@ fun AIChatApp() {
                                         popUpTo(Screen.ChatList.route) { inclusive = true }
                                     }
                                     currentRoute = Screen.ChatList.route
-                                },
-                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                            )
-
-                            NavigationDrawerItem(
-                                label = { Text("图片生成") },
-                                selected = currentRoute == Screen.ImageGen.route,
-                                onClick = {
-                                    scope.launch { drawerState.close() }
-                                    navController.navigate(Screen.ImageGen.route)
-                                    currentRoute = Screen.ImageGen.route
                                 },
                                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                             )
@@ -117,10 +140,9 @@ fun AIChatApp() {
                             Text(
                                 when (currentRoute) {
                                     Screen.ChatList.route -> "对话"
-                                    Screen.Chat.route -> "AI 聊天"
-                                    Screen.ImageGen.route -> "图片生成"
+                                    Screen.Chat.route -> "月下AI"
                                     Screen.Settings.route -> "设置"
-                                    else -> "AI 聊天"
+                                    else -> "月下AI"
                                 }
                             )
                         },
@@ -138,6 +160,19 @@ fun AIChatApp() {
                                     imageVector = Icons.Default.Menu,
                                     contentDescription = "菜单"
                                 )
+                            }
+                        },
+                        actions = {
+                            if (currentRoute == Screen.ChatList.route) {
+                                IconButton(onClick = {
+                                    scope.launch { drawerState.close() }
+                                    navController.navigate(Screen.Settings.route)
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "设置"
+                                    )
+                                }
                             }
                         }
                     )

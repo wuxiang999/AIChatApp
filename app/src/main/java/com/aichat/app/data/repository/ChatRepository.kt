@@ -1,6 +1,9 @@
 package com.aichat.app.data.repository
 
+import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Base64
 import android.util.Log
 import com.aichat.app.data.local.ConversationDao
 import com.aichat.app.data.local.MessageDao
@@ -9,9 +12,12 @@ import com.aichat.app.data.model.Message
 import com.aichat.app.data.remote.ApiManager
 import com.aichat.app.data.remote.ChatMessage
 import com.aichat.app.data.remote.ChatRequest
+import com.aichat.app.data.remote.ContentPart
 import com.aichat.app.data.remote.ImageGenerationResponse
+import com.aichat.app.data.remote.ImageUrlData
 import com.aichat.app.data.remote.StreamResponse
 import com.google.gson.Gson
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -32,7 +38,8 @@ import javax.inject.Singleton
 class ChatRepository @Inject constructor(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    private val apiManager: ApiManager
+    private val apiManager: ApiManager,
+    @ApplicationContext private val context: Context
 ) {
     private val gson = Gson()
     private val maxHistoryMessages = 50
@@ -77,18 +84,29 @@ class ChatRepository @Inject constructor(
         }
     }
 
+    suspend fun updateConversationModel(conversationId: String, model: String) {
+        val conversation = conversationDao.getConversationById(conversationId)
+        conversation?.let {
+            conversationDao.updateConversation(it.copy(model = model, updatedAt = Date()))
+        }
+    }
+
     suspend fun getConversation(conversationId: String): Conversation? =
         conversationDao.getConversationById(conversationId)
 
-    suspend fun addUserMessage(conversationId: String, content: String): Int {
+    suspend fun addUserMessage(conversationId: String, content: String, imageUris: List<String> = emptyList()): Int {
         val maxIndex = messageDao.getMaxIndexForConversation(conversationId)
         val newIndex = (maxIndex ?: -1) + 1
+        val displayContent = if (imageUris.isNotEmpty()) {
+            "$content\n[图片 x${imageUris.size}]"
+        } else content
         val message = Message(
             conversationId = conversationId,
             index = newIndex,
             role = "user",
-            content = content,
-            timestamp = Date()
+            content = displayContent,
+            timestamp = Date(),
+            imageUris = imageUris.joinToString(",")
         )
         messageDao.insertMessage(message)
         updateConversationTimestamp(conversationId)
@@ -98,7 +116,7 @@ class ChatRepository @Inject constructor(
         return newIndex
     }
 
-    suspend fun addAssistantMessage(conversationId: String, content: String, isStreaming: Boolean = false): Int {
+    suspend fun addAssistantMessage(conversationId: String, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList()): Int {
         val maxIndex = messageDao.getMaxIndexForConversation(conversationId)
         val newIndex = (maxIndex ?: -1) + 1
         val message = Message(
@@ -107,15 +125,19 @@ class ChatRepository @Inject constructor(
             role = "assistant",
             content = content,
             timestamp = Date(),
-            isStreaming = isStreaming
+            isStreaming = isStreaming,
+            imageUris = imageUrls.joinToString(",")
         )
         messageDao.insertMessage(message)
         updateConversationTimestamp(conversationId)
         return newIndex
     }
 
-    suspend fun updateAssistantMessage(conversationId: String, index: Int, content: String, isStreaming: Boolean = false) {
+    suspend fun updateAssistantMessage(conversationId: String, index: Int, content: String, isStreaming: Boolean = false, imageUrls: List<String> = emptyList()) {
         messageDao.updateMessageContent(conversationId, index, content, isStreaming)
+        if (imageUrls.isNotEmpty()) {
+            messageDao.updateMessageImages(conversationId, index, imageUrls.joinToString(","))
+        }
         updateConversationTimestamp(conversationId)
     }
 
@@ -138,8 +160,7 @@ class ChatRepository @Inject constructor(
     suspend fun getMessagesList(conversationId: String): List<Message> {
         return try {
             val flow = messageDao.getMessagesForConversation(conversationId)
-            val result = flow.first()
-            result
+            flow.first()
         } catch (e: Exception) {
             emptyList()
         }
@@ -153,51 +174,40 @@ class ChatRepository @Inject constructor(
         }
 
         return limitedMessages.map { msg ->
-            val content = parseMessageContent(msg)
-            ChatMessage(role = msg.role, content = content)
+            val imageUris = msg.imageUris?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+            if (imageUris.isNotEmpty()) {
+                val parts = mutableListOf<ContentPart>()
+                parts.add(ContentPart(type = "text", text = msg.content.replace("\n[图片 x${imageUris.size}]", "")))
+                imageUris.forEach { uri ->
+                    val base64 = try { uriToBase64(uri) } catch (_: Exception) { null }
+                    if (base64 != null) {
+                        parts.add(ContentPart(type = "image_url", image_url = ImageUrlData("data:image/jpeg;base64,$base64")))
+                    }
+                }
+                ChatMessage(role = msg.role, content = parts)
+            } else {
+                ChatMessage(role = msg.role, content = msg.content)
+            }
         }
     }
 
-    private fun parseMessageContent(message: Message): Any {
-        return message.content
-    }
-
-    suspend fun sendMessage(
-        conversationId: String,
-        message: String,
-        model: String = "gpt-3.5-turbo"
-    ): Result<String> {
+    private fun uriToBase64(uriString: String): String? {
         return try {
-            val historyMessages = getMessagesList(conversationId)
-            val chatMessages = buildChatMessages(historyMessages)
-
-            val request = ChatRequest(
-                model = model,
-                messages = chatMessages,
-                stream = false
-            )
-
-            val response = apiManager.getApiService().chatCompletion(
-                auth = apiManager.getAuthHeader(),
-                request = request
-            )
-
-            if (response.error != null) {
-                Result.failure(Exception(response.error.message))
-            } else {
-                val reply = response.choices?.firstOrNull()?.message?.content
-                    ?: return Result.failure(Exception("空响应"))
-                Result.success(reply)
+            val uri = Uri.parse(uriString)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val bytes = input.readBytes()
+                Base64.encodeToString(bytes, Base64.NO_WRAP)
             }
         } catch (e: Exception) {
-            Log.e("ChatRepository", "sendMessage error", e)
-            Result.failure(e)
+            Log.e("ChatRepository", "uriToBase64 error", e)
+            null
         }
     }
 
     suspend fun sendMessageStream(
         conversationId: String,
         message: String,
+        imageUris: List<String> = emptyList(),
         model: String = "gpt-3.5-turbo"
     ): Call<ResponseBody> {
         val historyMessages = getMessagesList(conversationId)
@@ -213,10 +223,6 @@ class ChatRepository @Inject constructor(
             auth = apiManager.getAuthHeader(),
             request = request
         )
-    }
-
-    private fun <T> runBlocking(block: suspend () -> T): T {
-        return kotlinx.coroutines.runBlocking { block() }
     }
 
     fun parseSseData(line: String): StreamResponse? {
@@ -242,8 +248,7 @@ class ChatRepository @Inject constructor(
         n: Int = 1,
         size: String = "1024x1024",
         model: String = "gpt-image-2",
-        quality: String? = null,
-        imagePath: String? = null
+        quality: String? = null
     ): Result<List<String>> {
         return withContext(Dispatchers.IO) {
             try {
@@ -253,28 +258,14 @@ class ChatRepository @Inject constructor(
                 val modelBody = model.toRequestBody("text/plain".toMediaType())
                 val qualityBody = quality?.toRequestBody("text/plain".toMediaType())
 
-                val response: ImageGenerationResponse = if (imagePath != null && File(imagePath).exists()) {
-                    val file = File(imagePath)
-                    val requestFile = file.asRequestBody("image/*".toMediaType())
-                    val imagePart = MultipartBody.Part.createFormData("image", file.name, requestFile)
-                    apiManager.getApiService().editImage(
-                        auth = apiManager.getAuthHeader(),
-                        image = imagePart,
-                        prompt = promptBody,
-                        n = nBody,
-                        size = sizeBody,
-                        model = modelBody
-                    )
-                } else {
-                    apiManager.getApiService().generateImage(
-                        auth = apiManager.getAuthHeader(),
-                        prompt = promptBody,
-                        n = nBody,
-                        size = sizeBody,
-                        model = modelBody,
-                        quality = qualityBody
-                    )
-                }
+                val response: ImageGenerationResponse = apiManager.getApiService().generateImage(
+                    auth = apiManager.getAuthHeader(),
+                    prompt = promptBody,
+                    n = nBody,
+                    size = sizeBody,
+                    model = modelBody,
+                    quality = qualityBody
+                )
 
                 if (response.error != null) {
                     Result.failure(Exception(response.error.message))

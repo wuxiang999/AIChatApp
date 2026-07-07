@@ -33,6 +33,16 @@ class SettingsViewModel @Inject constructor(
     private val _testResult = MutableStateFlow<Result<Int>?>(null)
     val testResult: StateFlow<Result<Int>?> = _testResult.asStateFlow()
 
+    // 每个端点的独立状态
+    private val _endpointTestResults = MutableStateFlow<Map<Long, Result<Int>>>(emptyMap())
+    val endpointTestResults: StateFlow<Map<Long, Result<Int>>> = _endpointTestResults.asStateFlow()
+
+    private val _endpointModels = MutableStateFlow<Map<Long, List<String>>>(emptyMap())
+    val endpointModels: StateFlow<Map<Long, List<String>>> = _endpointModels.asStateFlow()
+
+    private val _loadingEndpoints = MutableStateFlow<Set<Long>>(emptySet())
+    val loadingEndpoints: StateFlow<Set<Long>> = _loadingEndpoints.asStateFlow()
+
     init {
         loadEndpoints()
         loadCurrentEndpoint()
@@ -58,6 +68,50 @@ class SettingsViewModel @Inject constructor(
                 _models.value = models
             } finally {
                 _isLoadingModels.value = false
+            }
+        }
+    }
+
+    fun testEndpointForId(endpoint: ApiEndpoint) {
+        viewModelScope.launch {
+            val current = _endpointTestResults.value.toMutableMap()
+            current.remove(endpoint.id)
+            _endpointTestResults.value = current
+
+            val result = repository.testEndpoint(endpoint.url, endpoint.apiKey)
+
+            val updated = _endpointTestResults.value.toMutableMap()
+            updated[endpoint.id] = result
+            _endpointTestResults.value = updated
+        }
+    }
+
+    fun loadModelsForEndpoint(endpoint: ApiEndpoint) {
+        viewModelScope.launch {
+            val loading = _loadingEndpoints.value.toMutableSet()
+            loading.add(endpoint.id)
+            _loadingEndpoints.value = loading
+
+            try {
+                val result = apiManager.testEndpoint(endpoint.url, endpoint.apiKey)
+                val models = if (result.isSuccess) {
+                    // 临时切换到这个端点获取模型
+                    apiManager.getApiServiceForEndpoint(endpoint.url, endpoint.apiKey)
+                        .getModels("Bearer ${endpoint.apiKey}")
+                        .data.map { it.id }.sorted()
+                } else emptyList()
+
+                val updated = _endpointModels.value.toMutableMap()
+                updated[endpoint.id] = models
+                _endpointModels.value = updated
+            } catch (_: Exception) {
+                val updated = _endpointModels.value.toMutableMap()
+                updated[endpoint.id] = emptyList()
+                _endpointModels.value = updated
+            } finally {
+                val loadingDone = _loadingEndpoints.value.toMutableSet()
+                loadingDone.remove(endpoint.id)
+                _loadingEndpoints.value = loadingDone
             }
         }
     }
@@ -101,5 +155,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearTestResult() {
         _testResult.value = null
+    }
+
+    fun clearEndpointTestResult(endpointId: Long) {
+        val current = _endpointTestResults.value.toMutableMap()
+        current.remove(endpointId)
+        _endpointTestResults.value = current
     }
 }

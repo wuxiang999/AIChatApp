@@ -144,6 +144,16 @@ class ApiManager @Inject constructor(
         }
     }
 
+    fun getApiServiceForEndpoint(url: String, apiKey: String? = null): OpenAIApiService {
+        val baseUrl = if (url.endsWith("/")) url else "$url/"
+        val testRetrofit = Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        return testRetrofit.create(OpenAIApiService::class.java)
+    }
+
     suspend fun testEndpoint(url: String, apiKey: String): Result<Int> {
         return try {
             val testRetrofit = Retrofit.Builder()
