@@ -163,6 +163,17 @@ fun AIChatApp() {
                             }
                         },
                         actions = {
+                            if (currentRoute == Screen.ChatList.route || currentRoute == Screen.Chat.route) {
+                                IconButton(onClick = {
+                                    scope.launch { drawerState.close() }
+                                    navController.navigate(Screen.NewChat.route)
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "新建对话"
+                                    )
+                                }
+                            }
                             if (currentRoute == Screen.ChatList.route) {
                                 IconButton(onClick = {
                                     scope.launch { drawerState.close() }
@@ -176,19 +187,6 @@ fun AIChatApp() {
                             }
                         }
                     )
-                },
-                floatingActionButton = {
-                    if (currentRoute == Screen.ChatList.route || currentRoute == Screen.Chat.route) {
-                        FloatingActionButton(
-                            onClick = {
-                                scope.launch { drawerState.close() }
-                                navController.navigate(Screen.NewChat.route)
-                            },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "新建对话")
-                        }
-                    }
                 }
             ) { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {

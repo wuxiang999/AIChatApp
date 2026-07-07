@@ -109,7 +109,7 @@ fun ConversationsScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "点击右下角 + 开始新的对话",
+                        text = "点击右上角 + 开始新的对话",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
