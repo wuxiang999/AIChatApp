@@ -121,7 +121,12 @@ fun ChatScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { selectedImageUris.add(it.toString()) }
+        uri?.let {
+            selectedImageUris.add(it.toString())
+            if (!isImageEditMode) {
+                onImageEditModeChange(true)
+            }
+        }
     }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -323,7 +328,13 @@ fun ChatScreen(
                         }
 
                         IconButton(
-                            onClick = { isImageMode = !isImageMode },
+                            onClick = {
+                                isImageMode = !isImageMode
+                                if (!isImageMode) {
+                                    onImageEditModeChange(false)
+                                    selectedImageUris.clear()
+                                }
+                            },
                             modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
@@ -375,15 +386,18 @@ fun ChatScreen(
                         } else {
                             IconButton(
                                 onClick = {
-                                    if (text.isNotBlank() || selectedFileContents.isNotEmpty()) {
-                                        if (isImageMode) {
-                                            if (isImageEditMode && selectedImageUris.isNotEmpty()) {
-                                                onEditImage(selectedImageUris.first(), text)
-                                            } else {
-                                                onGenerateImage(text)
-                                            }
+                                    if (isImageMode) {
+                                        if (isImageEditMode && selectedImageUris.isNotEmpty() && text.isNotBlank()) {
+                                            onEditImage(selectedImageUris.first(), text)
                                             selectedImageUris.clear()
-                                        } else {
+                                            onImageEditModeChange(false)
+                                            text = ""
+                                        } else if (!isImageEditMode && text.isNotBlank()) {
+                                            onGenerateImage(text)
+                                            text = ""
+                                        }
+                                    } else {
+                                        if (text.isNotBlank() || selectedFileContents.isNotEmpty()) {
                                             val fullText = buildString {
                                                 append(text)
                                                 selectedFileContents.forEach { fileContent ->
@@ -393,28 +407,51 @@ fun ChatScreen(
                                             onSendMessage(fullText, selectedImageUris.toList())
                                             selectedImageUris.clear()
                                             selectedFileContents.clear()
+                                            text = ""
                                         }
-                                        text = ""
                                     }
                                 },
-                                enabled = text.isNotBlank() || selectedFileContents.isNotEmpty(),
+                                enabled = if (isImageMode) {
+                                    if (isImageEditMode) text.isNotBlank() && selectedImageUris.isNotEmpty()
+                                    else text.isNotBlank()
+                                } else {
+                                    text.isNotBlank() || selectedFileContents.isNotEmpty()
+                                },
                                 modifier = Modifier
                                     .size(48.dp)
                                     .background(
-                                        color = if (text.isNotBlank())
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                                        color = if (isImageMode) {
+                                            if (isImageEditMode && text.isNotBlank() && selectedImageUris.isNotEmpty())
+                                                MaterialTheme.colorScheme.primary
+                                            else if (!isImageEditMode && text.isNotBlank())
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                        } else {
+                                            if (text.isNotBlank() || selectedFileContents.isNotEmpty())
+                                                MaterialTheme.colorScheme.primary
+                                            else
+                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                        },
                                         shape = CircleShape
                                     )
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
                                     contentDescription = if (isImageMode) "生成图片" else "发送",
-                                    tint = if (text.isNotBlank())
-                                        MaterialTheme.colorScheme.onPrimary
-                                    else
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    tint = if (isImageMode) {
+                                        if (isImageEditMode && text.isNotBlank() && selectedImageUris.isNotEmpty())
+                                            MaterialTheme.colorScheme.onPrimary
+                                        else if (!isImageEditMode && text.isNotBlank())
+                                            MaterialTheme.colorScheme.onPrimary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                    } else {
+                                        if (text.isNotBlank() || selectedFileContents.isNotEmpty())
+                                            MaterialTheme.colorScheme.onPrimary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                    },
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
