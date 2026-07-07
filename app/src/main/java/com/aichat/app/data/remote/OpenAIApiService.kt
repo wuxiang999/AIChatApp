@@ -141,6 +141,7 @@ data class StreamResponse(
 
 data class StreamChoice(
     val delta: StreamDelta?,
+    val message: StreamMessage? = null,
     val finish_reason: String? = null,
     val index: Int = 0
 )
@@ -148,5 +149,13 @@ data class StreamChoice(
 data class StreamDelta(
     val content: String? = null,
     val role: String? = null,
-    val reasoning_content: String? = null
+    val reasoning_content: String? = null,
+    val thinking_content: String? = null
+)
+
+data class StreamMessage(
+    val content: String? = null,
+    val role: String? = null,
+    val reasoning_content: String? = null,
+    val thinking_content: String? = null
 )

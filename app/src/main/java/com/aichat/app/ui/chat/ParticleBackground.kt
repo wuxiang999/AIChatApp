@@ -44,7 +44,7 @@ fun ParticleBackground(
                     vy = (Random.nextFloat()) * 0.5f + 0.2f,
                     radius = sizePx * (Random.nextFloat() * 0.5f + 0.5f),
                     alpha = Random.nextFloat() * 0.5f + 0.2f,
-                    color = Color(0xFF4A90D9)
+                    color = Color(0xFF0D7D8C)
                 )
             )
         }

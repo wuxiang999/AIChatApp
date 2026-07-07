@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
@@ -294,6 +296,59 @@ class ChatRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("ChatRepository", "generateImage error", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun editImage(
+        imageUri: String,
+        prompt: String,
+        n: Int = 1,
+        size: String = "1024x1024",
+        model: String = "gpt-image-2"
+    ): Result<List<String>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val uri = Uri.parse(imageUri)
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val imageBytes = inputStream?.readBytes() ?: return@withContext Result.failure(Exception("无法读取图片"))
+                inputStream.close()
+
+                val requestBody = okhttp3.RequestBody.create(
+                    "image/*".toMediaType(),
+                    imageBytes
+                )
+                val imagePart = MultipartBody.Part.createFormData(
+                    "image",
+                    "image.png",
+                    requestBody
+                )
+
+                val promptBody = prompt.toRequestBody("text/plain".toMediaType())
+                val nBody = n.toString().toRequestBody("text/plain".toMediaType())
+                val sizeBody = size.toRequestBody("text/plain".toMediaType())
+                val modelBody = model.toRequestBody("text/plain".toMediaType())
+
+                val response = apiManager.getApiService().editImage(
+                    auth = apiManager.getAuthHeader(),
+                    image = imagePart,
+                    prompt = promptBody,
+                    n = nBody,
+                    size = sizeBody,
+                    model = modelBody
+                )
+
+                if (response.error != null) {
+                    Result.failure(Exception(response.error.message))
+                } else {
+                    val urls = response.data?.mapNotNull { data ->
+                        data.url ?: data.b64_json?.let { "data:image/png;base64,$it" }
+                    } ?: emptyList()
+                    Result.success(urls)
+                }
+            } catch (e: Exception) {
+                Log.e("ChatRepository", "editImage error", e)
                 Result.failure(e)
             }
         }

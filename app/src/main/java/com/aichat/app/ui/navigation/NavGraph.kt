@@ -77,6 +77,10 @@ fun AIChatNavHost(
             val availableModels by viewModel.availableModels.collectAsStateWithLifecycle()
             val endpoints by viewModel.endpoints.collectAsStateWithLifecycle()
             val currentEndpointId by viewModel.currentEndpointId.collectAsStateWithLifecycle()
+            val imageCount by viewModel.imageCount.collectAsStateWithLifecycle()
+            val imageSize by viewModel.imageSize.collectAsStateWithLifecycle()
+            val imageModel by viewModel.imageModel.collectAsStateWithLifecycle()
+            val isImageEditMode by viewModel.isImageEditMode.collectAsStateWithLifecycle()
 
             ChatScreen(
                 messages = messages,
@@ -86,6 +90,10 @@ fun AIChatNavHost(
                 availableModels = availableModels,
                 endpoints = endpoints,
                 currentEndpointId = currentEndpointId,
+                imageCount = imageCount,
+                imageSize = imageSize,
+                imageModel = imageModel,
+                isImageEditMode = isImageEditMode,
                 onSendMessage = { message, images ->
                     viewModel.sendMessage(message, images)
                 },
@@ -103,6 +111,24 @@ fun AIChatNavHost(
                 },
                 onNewConversation = {
                     navController.navigate(Screen.NewChat.route)
+                },
+                onGenerateImage = { prompt ->
+                    viewModel.generateImage(prompt)
+                },
+                onEditImage = { imageUri, prompt ->
+                    viewModel.editImage(imageUri, prompt)
+                },
+                onImageCountChange = { count ->
+                    viewModel.setImageCount(count)
+                },
+                onImageSizeChange = { size ->
+                    viewModel.setImageSize(size)
+                },
+                onImageModelChange = { model ->
+                    viewModel.setImageModel(model)
+                },
+                onImageEditModeChange = { isEdit ->
+                    viewModel.setImageEditMode(isEdit)
                 }
             )
         }

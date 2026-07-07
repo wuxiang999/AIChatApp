@@ -41,6 +41,18 @@ class ChatViewModel @Inject constructor(
     private val _isGeneratingImage = MutableStateFlow(false)
     val isGeneratingImage: StateFlow<Boolean> = _isGeneratingImage.asStateFlow()
 
+    private val _imageCount = MutableStateFlow(1)
+    val imageCount: StateFlow<Int> = _imageCount.asStateFlow()
+
+    private val _imageSize = MutableStateFlow("1024x1024")
+    val imageSize: StateFlow<String> = _imageSize.asStateFlow()
+
+    private val _imageModel = MutableStateFlow("dall-e-3")
+    val imageModel: StateFlow<String> = _imageModel.asStateFlow()
+
+    private val _isImageEditMode = MutableStateFlow(false)
+    val isImageEditMode: StateFlow<Boolean> = _isImageEditMode.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -183,7 +195,12 @@ class ChatViewModel @Inject constructor(
 
             withContext(Dispatchers.IO) {
                 try {
-                    val result = repository.generateImage(prompt = prompt, n = 1, size = "1024x1024")
+                    val result = repository.generateImage(
+                        prompt = prompt,
+                        n = _imageCount.value,
+                        size = _imageSize.value,
+                        model = _imageModel.value
+                    )
                     result.onSuccess { urls ->
                         repository.updateAssistantMessage(
                             conversationId, assistantIndex,
@@ -208,6 +225,67 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun editImage(imageUri: String, prompt: String) {
+        if (prompt.isBlank() || _isGeneratingImage.value) return
+
+        _error.value = null
+
+        viewModelScope.launch {
+            repository.addUserMessage(conversationId, "图生图: $prompt")
+            val assistantIndex = repository.addAssistantMessage(conversationId, "正在生成图片...", isStreaming = true)
+            _isGeneratingImage.value = true
+
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = repository.editImage(
+                        imageUri = imageUri,
+                        prompt = prompt,
+                        n = _imageCount.value,
+                        size = _imageSize.value,
+                        model = _imageModel.value
+                    )
+                    result.onSuccess { urls ->
+                        repository.updateAssistantMessage(
+                            conversationId, assistantIndex,
+                            "图片生成完成", isStreaming = false, imageUrls = urls
+                        )
+                    }.onFailure { error ->
+                        repository.updateAssistantMessage(
+                            conversationId, assistantIndex,
+                            "图片生成失败: ${error.message}", isStreaming = false
+                        )
+                        _error.value = error.message
+                    }
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "editImage error", e)
+                    repository.updateAssistantMessage(
+                        conversationId, assistantIndex,
+                        "图片生成错误: ${e.message}", isStreaming = false
+                    )
+                    _error.value = e.message
+                } finally {
+                    _isGeneratingImage.value = false
+                }
+            }
+        }
+    }
+
+    fun setImageCount(count: Int) {
+        _imageCount.value = count
+    }
+
+    fun setImageSize(size: String) {
+        _imageSize.value = size
+    }
+
+    fun setImageModel(model: String) {
+        _imageModel.value = model
+    }
+
+    fun setImageEditMode(isEdit: Boolean) {
+        _isImageEditMode.value = isEdit
     }
 
     private suspend fun processStreamResponse(body: ResponseBody, assistantIndex: Int) {
@@ -237,17 +315,20 @@ class ChatViewModel @Inject constructor(
                             return
                         }
 
-                        streamResponse.choices?.firstOrNull()?.delta?.content?.let { content ->
+                        val choice = streamResponse.choices?.firstOrNull()
+
+                        choice?.delta?.content?.let { content ->
                             fullMessage.append(content)
                             repository.updateAssistantMessage(
                                 conversationId,
                                 assistantIndex,
                                 fullMessage.toString(),
-                                isStreaming = true
+                                isStreaming = true,
+                                reasoningContent = fullReasoning.toString().takeIf { it.isNotEmpty() }
                             )
                         }
 
-                        streamResponse.choices?.firstOrNull()?.delta?.reasoning_content?.let { reasoning ->
+                        choice?.delta?.reasoning_content?.let { reasoning ->
                             fullReasoning.append(reasoning)
                             repository.updateAssistantMessage(
                                 conversationId,
@@ -258,7 +339,44 @@ class ChatViewModel @Inject constructor(
                             )
                         }
 
-                        if (streamResponse.choices?.firstOrNull()?.finish_reason != null) {
+                        choice?.delta?.thinking_content?.let { reasoning ->
+                            fullReasoning.append(reasoning)
+                            repository.updateAssistantMessage(
+                                conversationId,
+                                assistantIndex,
+                                fullMessage.toString(),
+                                isStreaming = true,
+                                reasoningContent = fullReasoning.toString()
+                            )
+                        }
+
+                        choice?.message?.reasoning_content?.let { reasoning ->
+                            if (reasoning.isNotEmpty() && fullReasoning.isEmpty()) {
+                                fullReasoning.append(reasoning)
+                                repository.updateAssistantMessage(
+                                    conversationId,
+                                    assistantIndex,
+                                    fullMessage.toString(),
+                                    isStreaming = true,
+                                    reasoningContent = fullReasoning.toString()
+                                )
+                            }
+                        }
+
+                        choice?.message?.thinking_content?.let { reasoning ->
+                            if (reasoning.isNotEmpty() && fullReasoning.isEmpty()) {
+                                fullReasoning.append(reasoning)
+                                repository.updateAssistantMessage(
+                                    conversationId,
+                                    assistantIndex,
+                                    fullMessage.toString(),
+                                    isStreaming = true,
+                                    reasoningContent = fullReasoning.toString()
+                                )
+                            }
+                        }
+
+                        if (choice?.finish_reason != null) {
                             break
                         }
                     }
