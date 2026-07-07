@@ -94,7 +94,9 @@ fun AIChatNavHost(
                 onModelChange = { model ->
                     viewModel.setModel(model)
                 },
-                onOpenDrawer = onOpenDrawer
+                onNewConversation = {
+                    navController.navigate(Screen.NewChat.route)
+                }
             )
         }
 

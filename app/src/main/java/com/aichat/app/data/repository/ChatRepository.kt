@@ -2,7 +2,6 @@ package com.aichat.app.data.repository
 
 import android.content.Context
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.util.Base64
 import android.util.Log
 import com.aichat.app.data.local.ConversationDao
@@ -23,12 +22,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
-import java.io.File
 import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
@@ -157,7 +153,45 @@ class ChatRepository @Inject constructor(
         updateConversationTitle(conversationId, title)
     }
 
-    suspend fun getMessagesList(conversationId: String): List<Message> {
+    suspend fun sendMessageStream(
+        conversationId: String,
+        currentMessage: String,
+        imageUris: List<String> = emptyList(),
+        model: String = "gpt-3.5-turbo"
+    ): Call<ResponseBody> {
+        val historyMessages = getMessagesList(conversationId)
+
+        val displayContent = if (imageUris.isNotEmpty()) {
+            "$currentMessage\n[图片 x${imageUris.size}]"
+        } else currentMessage
+
+        val userMessage = Message(
+            conversationId = conversationId,
+            index = (historyMessages.lastOrNull()?.index ?: -1) + 1,
+            role = "user",
+            content = displayContent,
+            timestamp = Date(),
+            imageUris = imageUris.joinToString(",")
+        )
+
+        val allMessages = historyMessages + userMessage
+        val chatMessages = buildChatMessages(allMessages)
+
+        Log.d("ChatRepository", "Sending ${chatMessages.size} messages to API, model: $model")
+
+        val request = ChatRequest(
+            model = model,
+            messages = chatMessages,
+            stream = true
+        )
+
+        return apiManager.getApiService().chatCompletionStream(
+            auth = apiManager.getAuthHeader(),
+            request = request
+        )
+    }
+
+    private suspend fun getMessagesList(conversationId: String): List<Message> {
         return try {
             val flow = messageDao.getMessagesForConversation(conversationId)
             flow.first()
@@ -177,7 +211,7 @@ class ChatRepository @Inject constructor(
             val imageUris = msg.imageUris?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             if (imageUris.isNotEmpty()) {
                 val parts = mutableListOf<ContentPart>()
-                parts.add(ContentPart(type = "text", text = msg.content.replace("\n[图片 x${imageUris.size}]", "")))
+                parts.add(ContentPart(type = "text", text = msg.content.replace("\n\\[图片 x\\d+\\]".toRegex(), "")))
                 imageUris.forEach { uri ->
                     val base64 = try { uriToBase64(uri) } catch (_: Exception) { null }
                     if (base64 != null) {
@@ -202,27 +236,6 @@ class ChatRepository @Inject constructor(
             Log.e("ChatRepository", "uriToBase64 error", e)
             null
         }
-    }
-
-    suspend fun sendMessageStream(
-        conversationId: String,
-        message: String,
-        imageUris: List<String> = emptyList(),
-        model: String = "gpt-3.5-turbo"
-    ): Call<ResponseBody> {
-        val historyMessages = getMessagesList(conversationId)
-        val chatMessages = buildChatMessages(historyMessages)
-
-        val request = ChatRequest(
-            model = model,
-            messages = chatMessages,
-            stream = true
-        )
-
-        return apiManager.getApiService().chatCompletionStream(
-            auth = apiManager.getAuthHeader(),
-            request = request
-        )
     }
 
     fun parseSseData(line: String): StreamResponse? {

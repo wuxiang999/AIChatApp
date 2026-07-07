@@ -25,10 +25,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -55,22 +55,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.aichat.app.data.model.Message
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,14 +79,13 @@ fun ChatScreen(
     onStopGeneration: () -> Unit,
     onClearConversation: () -> Unit,
     onModelChange: (String) -> Unit,
-    onOpenDrawer: () -> Unit
+    onNewConversation: () -> Unit
 ) {
     var text by remember { mutableStateOf("") }
     var isImageMode by remember { mutableStateOf(false) }
     val selectedImageUris = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     var modelExpanded by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -114,6 +108,23 @@ fun ChatScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = { Text("月下AI") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                navigationIcon = {
+                    IconButton(onClick = onNewConversation) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "新建对话"
+                        )
+                    }
+                }
+            )
+        },
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -232,24 +243,7 @@ fun ChatScreen(
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
-                            modifier = Modifier
-                                .weight(1f)
-                                .onKeyEvent { event ->
-                                    if (event.key == Key.Enter) {
-                                        if (text.isNotBlank() && !isLoading) {
-                                            if (isImageMode) {
-                                                // 图片生成模式
-                                            } else {
-                                                onSendMessage(text, selectedImageUris.toList())
-                                                text = ""
-                                                selectedImageUris.clear()
-                                            }
-                                        }
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
+                            modifier = Modifier.weight(1f),
                             placeholder = {
                                 Text(
                                     if (isImageMode) "输入图片描述生成图片..."
@@ -257,20 +251,7 @@ fun ChatScreen(
                                 )
                             },
                             shape = RoundedCornerShape(24.dp),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    if (text.isNotBlank() && !isLoading) {
-                                        if (isImageMode) {
-                                            // 图片生成由下方按钮处理
-                                        } else {
-                                            onSendMessage(text, selectedImageUris.toList())
-                                            text = ""
-                                            selectedImageUris.clear()
-                                        }
-                                    }
-                                }
-                            ),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)

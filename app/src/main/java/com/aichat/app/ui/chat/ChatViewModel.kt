@@ -108,7 +108,7 @@ class ChatViewModel @Inject constructor(
                 try {
                     val call = repository.sendMessageStream(
                         conversationId = conversationId,
-                        message = text,
+                        currentMessage = text,
                         imageUris = imageUris,
                         model = model
                     )

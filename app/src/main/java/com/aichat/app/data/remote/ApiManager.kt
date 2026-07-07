@@ -23,7 +23,7 @@ class ApiManager @Inject constructor(
 
     private val okHttpClient: OkHttpClient by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = HttpLoggingInterceptor.Level.BODY
         }
         OkHttpClient.Builder()
             .addInterceptor(logging)
