@@ -1,11 +1,21 @@
 package com.aichat.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -16,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,7 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.aichat.app.ui.navigation.AIChatNavHost
 import com.aichat.app.ui.navigation.Screen
@@ -33,7 +44,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AIChatApp() {
     val navController = rememberNavController()
-    val drawerState = androidx.compose.material3.rememberDrawerState(
+    val drawerState = rememberDrawerState(
         androidx.compose.material3.DrawerValue.Closed
     )
     val scope = rememberCoroutineScope()
@@ -48,15 +59,17 @@ fun AIChatApp() {
                         modifier = Modifier.weight(1f),
                         color = MaterialTheme.colorScheme.surface
                     ) {
-                        androidx.compose.foundation.layout.Column {
-                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.padding(top = 16.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "AI 聊天",
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(horizontal = 28.dp, vertical = 16.dp),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            androidx.compose.foundation.layout.Divider()
+                            androidx.compose.material3.Divider()
 
                             NavigationDrawerItem(
                                 label = { Text("对话列表") },
@@ -116,7 +129,7 @@ fun AIChatApp() {
                             titleContentColor = MaterialTheme.colorScheme.onSurface
                         ),
                         navigationIcon = {
-                            androidx.compose.material3.IconButton(onClick = {
+                            IconButton(onClick = {
                                 scope.launch {
                                     if (drawerState.isOpen) drawerState.close() else drawerState.open()
                                 }
@@ -143,7 +156,7 @@ fun AIChatApp() {
                     }
                 }
             ) { innerPadding ->
-                androidx.compose.foundation.layout.Box(modifier = Modifier.padding(innerPadding)) {
+                Box(modifier = Modifier.padding(innerPadding)) {
                     AIChatNavHost(
                         navController = navController,
                         onRouteChange = { route -> currentRoute = route },
@@ -154,5 +167,3 @@ fun AIChatApp() {
         }
     }
 }
-
-private val Icons.Default.Menu get() = androidx.compose.material.icons.Icons.Filled.Menu

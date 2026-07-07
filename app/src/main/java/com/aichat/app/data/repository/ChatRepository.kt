@@ -14,6 +14,7 @@ import com.aichat.app.data.remote.StreamResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
@@ -137,7 +138,7 @@ class ChatRepository @Inject constructor(
     suspend fun getMessagesList(conversationId: String): List<Message> {
         return try {
             val flow = messageDao.getMessagesForConversation(conversationId)
-            val result = kotlinx.coroutines.flow.first(flow)
+            val result = flow.first()
             result
         } catch (e: Exception) {
             emptyList()
@@ -194,12 +195,12 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    fun sendMessageStream(
+    suspend fun sendMessageStream(
         conversationId: String,
         message: String,
         model: String = "gpt-3.5-turbo"
     ): Call<ResponseBody> {
-        val historyMessages = runBlocking { getMessagesList(conversationId) }
+        val historyMessages = getMessagesList(conversationId)
         val chatMessages = buildChatMessages(historyMessages)
 
         val request = ChatRequest(

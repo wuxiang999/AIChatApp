@@ -379,7 +379,7 @@ fun SettingsScreen(
 fun OutlinedButtonTest(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
     androidx.compose.material3.OutlinedButton(
         onClick = onClick,
