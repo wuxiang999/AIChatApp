@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号 (例如: 1.2.0)'
+        description: '版本号 (例如: 2.1.0)'
         required: true
-        default: '1.2.0'
+        default: '2.1.0'
 
 jobs:
   build-and-release:
@@ -32,22 +32,11 @@ jobs:
         with:
           packages: 'platforms;android-34 build-tools;34.0.0 ndk;25.1.8937393 cmake;3.22.1'
 
-      - name: Prepare keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
-        env:
-          KEYSTORE_FILE: release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Get version from tag
         id: get_version
@@ -75,7 +64,7 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🔒 修复安全漏洞：移除硬编码的 API Key 和签名密钥
+            - 🤖 新增智能体系统：8个预设角色 + 自定义智能体
             - 🎨 设置界面优化，布局更简洁
             - 🔍 模型选择器支持搜索过滤
             - ✅ 模型选择后显示对号标记
@@ -83,7 +72,7 @@ jobs:
             - ⚡ 更多UI优化和性能改进
 
             ### 安装说明
-            下载 APK 文件后直接安装即可。Android 8.0+ 设备可用。
+            下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
           draft: false
           prerelease: false
         env:
@@ -100,7 +89,7 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🔒 修复安全漏洞：移除硬编码的 API Key 和签名密钥
+            - 🤖 新增智能体系统：8个预设角色 + 自定义智能体
             - 🎨 设置界面优化，布局更简洁
             - 🔍 模型选择器支持搜索过滤
             - ✅ 模型选择后显示对号标记
@@ -108,7 +97,7 @@ jobs:
             - ⚡ 更多UI优化和性能改进
 
             ### 安装说明
-            下载 APK 文件后直接安装即可。Android 8.0+ 设备可用。
+            下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
           draft: false
           prerelease: false
         env:
