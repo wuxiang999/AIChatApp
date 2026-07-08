@@ -97,6 +97,10 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.0.2
+- 🔧 修复 GitHub Actions 构建失败问题（android-actions/setup-android API 更新）
+- ⚡ 优化 CI/CD 工作流配置
+
 ### v2.0.0
 - 🔄 发送者消息支持长按撤回
 - 🧠 AI 机器人完整支持显示 reasoning_content 思考内容
