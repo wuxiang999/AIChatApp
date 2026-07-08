@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -126,6 +128,46 @@ fun AIChatApp() {
                                     }
                                     currentRoute = Screen.ChatList.route
                                 },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    unselectedContainerColor = Color.Transparent,
+                                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+
+                            NavigationDrawerItem(
+                                label = {
+                                    Text(
+                                        text = "智能体",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                },
+                                selected = currentRoute == Screen.Agents.route,
+                                onClick = {
+                                    scope.launch { drawerState.close() }
+                                    navController.navigate(Screen.Agents.route)
+                                    currentRoute = Screen.Agents.route
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
                                     .fillMaxWidth(),
@@ -152,6 +194,13 @@ fun AIChatApp() {
                                     navController.navigate(Screen.Settings.route)
                                     currentRoute = Screen.Settings.route
                                 },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp, vertical = 4.dp)
                                     .fillMaxWidth(),
@@ -177,6 +226,7 @@ fun AIChatApp() {
                                     Screen.ChatList.route -> "月下AI"
                                     Screen.Chat.route -> "月下AI"
                                     Screen.Settings.route -> "设置"
+                                    Screen.Agents.route -> "智能体"
                                     else -> "月下AI"
                                 },
                                 style = MaterialTheme.typography.headlineSmall,

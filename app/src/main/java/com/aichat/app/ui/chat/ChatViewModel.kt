@@ -72,10 +72,17 @@ class ChatViewModel @Inject constructor(
     private var streamCall: Call<ResponseBody>? = null
 
     init {
+        initializeAgents()
         loadMessages()
         loadConversationInfo()
         loadModels()
         loadEndpoints()
+    }
+
+    private fun initializeAgents() {
+        viewModelScope.launch {
+            repository.initializeAgents()
+        }
     }
 
     private fun loadEndpoints() {
