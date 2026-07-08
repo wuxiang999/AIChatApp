@@ -26,6 +26,13 @@ jobs:
         with:
           packages: 'platforms;android-34 build-tools;34.0.0'
 
+      - name: Prepare keystore
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
@@ -33,6 +40,16 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Build Release APK
+        if: github.event_name != 'pull_request'
+        run: ./gradlew assembleRelease --no-daemon
+        env:
+          KEYSTORE_FILE: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Build Release APK (PR)
+        if: github.event_name == 'pull_request'
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload Debug APK
@@ -42,6 +59,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload Release APK
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: app-release
