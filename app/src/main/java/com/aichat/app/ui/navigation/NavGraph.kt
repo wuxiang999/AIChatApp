@@ -15,6 +15,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.aichat.app.ui.agents.AgentsScreen
 import com.aichat.app.ui.chat.ChatScreen
 import com.aichat.app.ui.chat.ChatViewModel
 import com.aichat.app.ui.conversations.ConversationsScreen
@@ -29,6 +30,7 @@ sealed class Screen(val route: String) {
     }
     object NewChat : Screen("new_chat")
     object Settings : Screen("settings")
+    object Agents : Screen("agents")
 }
 
 @Composable
@@ -158,6 +160,13 @@ fun AIChatNavHost(
         composable(Screen.Settings.route) {
             onRouteChange(Screen.Settings.route)
             SettingsScreen()
+        }
+
+        composable(Screen.Agents.route) {
+            onRouteChange(Screen.Agents.route)
+            AgentsScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }
