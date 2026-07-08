@@ -23,7 +23,7 @@ class AgentsViewModel @Inject constructor(
     val selectedAgentId: StateFlow<String?> = _selectedAgentId.asStateFlow()
 
     private val _showAddDialog = MutableStateFlow(false)
-    val showAddDialog: StateFlow<Boolean> = _showAddDialog.asStateFlow()
+    val isAddDialogVisible: StateFlow<Boolean> = _showAddDialog.asStateFlow()
 
     init {
         viewModelScope.launch {
