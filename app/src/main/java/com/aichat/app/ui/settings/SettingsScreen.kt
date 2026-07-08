@@ -306,32 +306,30 @@ fun SettingsScreen(
                                     } else {
                                         items(filteredModels) { model ->
                                             val isSelected = model == selectedModel
-                                            androidx.compose.foundation.clickable(
-                                                onClick = {
-                                                    selectedModel = if (isSelected) null else model
-                                                }
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    if (isSelected) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Check,
-                                                            contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(16.dp)
-                                                        )
-                                                    } else {
-                                                        Spacer(modifier = Modifier.size(16.dp))
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        selectedModel = if (isSelected) null else model
                                                     }
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Text(
-                                                        text = model,
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = if (isSelected)
+                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                } else {
+                                                    Spacer(modifier = Modifier.size(16.dp))
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = model,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (isSelected)
                                                             MaterialTheme.colorScheme.primary
                                                         else
                                                             MaterialTheme.colorScheme.onSurface,

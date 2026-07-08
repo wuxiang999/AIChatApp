@@ -1,5 +1,6 @@
 package com.aichat.app.ui.agents
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -208,21 +209,12 @@ private fun AgentCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .run {
-                        if (isSelected) {
-                            this.then(
-                                androidx.compose.ui.Modifier.background(
-                                    MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        } else {
-                            this.then(
-                                androidx.compose.ui.Modifier.background(
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                )
-                            )
-                        }
-                    },
+                    .background(
+                        if (isSelected)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.secondaryContainer
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
