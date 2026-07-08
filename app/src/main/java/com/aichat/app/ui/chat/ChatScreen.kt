@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.Card
@@ -116,6 +117,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     var modelExpanded by remember { mutableStateOf(false) }
+    var modelSearchQuery by remember { mutableStateOf("") }
     var endpointExpanded by remember { mutableStateOf(false) }
     var imageCountExpanded by remember { mutableStateOf(false) }
     var imageSizeExpanded by remember { mutableStateOf(false) }
@@ -186,94 +188,295 @@ fun ChatScreen(
                         .fillMaxWidth()
                         .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp)
                 ) {
-                    if (endpoints.isNotEmpty()) {
-                        ExposedDropdownMenuBox(
-                            expanded = endpointExpanded,
-                            onExpandedChange = { endpointExpanded = it },
-                            modifier = Modifier.fillMaxWidth()
+                    if (endpoints.isNotEmpty() && availableModels.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(
-                                value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("API端点", style = MaterialTheme.typography.bodyMedium) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                shape = RoundedCornerShape(16.dp),
-                                singleLine = true,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
-                            )
-                            ExposedDropdownMenu(
+                            ExposedDropdownMenuBox(
                                 expanded = endpointExpanded,
-                                onDismissRequest = { endpointExpanded = false }
+                                onExpandedChange = { endpointExpanded = it },
+                                modifier = Modifier.weight(1f)
                             ) {
-                                endpoints.forEach { endpoint ->
-                                    DropdownMenuItem(
-                                        text = { Text(endpoint.name) },
-                                        onClick = {
-                                            onEndpointChange(endpoint.id)
-                                            endpointExpanded = false
+                                OutlinedTextField(
+                                    value = endpoints.find { it.id == currentEndpointId }?.name ?: "端点",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("API端点", style = MaterialTheme.typography.bodySmall) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = endpointExpanded,
+                                    onDismissRequest = { endpointExpanded = false }
+                                ) {
+                                    endpoints.forEach { endpoint ->
+                                        DropdownMenuItem(
+                                            text = { Text(endpoint.name, style = MaterialTheme.typography.bodyMedium) },
+                                            onClick = {
+                                                onEndpointChange(endpoint.id)
+                                                endpointExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            ExposedDropdownMenuBox(
+                                expanded = modelExpanded,
+                                onExpandedChange = { modelExpanded = it },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                OutlinedTextField(
+                                    value = if (modelExpanded) modelSearchQuery else currentModel,
+                                    onValueChange = { modelSearchQuery = it },
+                                    label = { Text("模型", style = MaterialTheme.typography.bodySmall) },
+                                    trailingIcon = {
+                                        if (modelExpanded && modelSearchQuery.isNotBlank()) {
+                                            IconButton(
+                                                onClick = { modelSearchQuery = "" },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = "清除",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        } else {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded)
                                         }
-                                    )
+                                    },
+                                    leadingIcon = {
+                                        if (modelExpanded) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = "搜索",
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = modelExpanded,
+                                    onDismissRequest = {
+                                        modelExpanded = false
+                                        modelSearchQuery = ""
+                                    }
+                                ) {
+                                    val filteredModels = if (modelSearchQuery.isBlank()) {
+                                        availableModels
+                                    } else {
+                                        availableModels.filter {
+                                            it.contains(modelSearchQuery, ignoreCase = true)
+                                        }
+                                    }
+                                    if (filteredModels.isEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("无匹配模型", style = MaterialTheme.typography.bodyMedium) },
+                                            onClick = {}
+                                        )
+                                    } else {
+                                        filteredModels.take(20).forEach { model ->
+                                            DropdownMenuItem(
+                                                text = { Text(model, style = MaterialTheme.typography.bodyMedium) },
+                                                onClick = {
+                                                    onModelChange(model)
+                                                    modelExpanded = false
+                                                    modelSearchQuery = ""
+                                                }
+                                            )
+                                        }
+                                        if (filteredModels.size > 20) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        "还有 ${filteredModels.size - 20} 个模型...",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                },
+                                                onClick = {}
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                         Spacer(modifier = Modifier.height(6.dp))
-                    }
-
-                    if (availableModels.isNotEmpty()) {
-                        ExposedDropdownMenuBox(
-                            expanded = modelExpanded,
-                            onExpandedChange = { modelExpanded = it },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            OutlinedTextField(
-                                value = currentModel,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .menuAnchor(),
-                                shape = RoundedCornerShape(16.dp),
-                                singleLine = true,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
-                            )
-                            ExposedDropdownMenu(
-                                expanded = modelExpanded,
-                                onDismissRequest = { modelExpanded = false }
+                    } else {
+                        if (endpoints.isNotEmpty()) {
+                            ExposedDropdownMenuBox(
+                                expanded = endpointExpanded,
+                                onExpandedChange = { endpointExpanded = it },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                availableModels.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = { Text(model) },
-                                        onClick = {
-                                            onModelChange(model)
-                                            modelExpanded = false
-                                        }
-                                    )
+                                OutlinedTextField(
+                                    value = endpoints.find { it.id == currentEndpointId }?.name ?: "端点",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("API端点", style = MaterialTheme.typography.bodySmall) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = endpointExpanded,
+                                    onDismissRequest = { endpointExpanded = false }
+                                ) {
+                                    endpoints.forEach { endpoint ->
+                                        DropdownMenuItem(
+                                            text = { Text(endpoint.name, style = MaterialTheme.typography.bodyMedium) },
+                                            onClick = {
+                                                onEndpointChange(endpoint.id)
+                                                endpointExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(6.dp))
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (availableModels.isNotEmpty()) {
+                            ExposedDropdownMenuBox(
+                                expanded = modelExpanded,
+                                onExpandedChange = { modelExpanded = it },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = if (modelExpanded) modelSearchQuery else currentModel,
+                                    onValueChange = { modelSearchQuery = it },
+                                    label = { Text("模型", style = MaterialTheme.typography.bodySmall) },
+                                    trailingIcon = {
+                                        if (modelExpanded && modelSearchQuery.isNotBlank()) {
+                                            IconButton(
+                                                onClick = { modelSearchQuery = "" },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = "清除",
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        } else {
+                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded)
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        if (modelExpanded) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = "搜索",
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = modelExpanded,
+                                    onDismissRequest = {
+                                        modelExpanded = false
+                                        modelSearchQuery = ""
+                                    }
+                                ) {
+                                    val filteredModels = if (modelSearchQuery.isBlank()) {
+                                        availableModels
+                                    } else {
+                                        availableModels.filter {
+                                            it.contains(modelSearchQuery, ignoreCase = true)
+                                        }
+                                    }
+                                    if (filteredModels.isEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("无匹配模型", style = MaterialTheme.typography.bodyMedium) },
+                                            onClick = {}
+                                        )
+                                    } else {
+                                        filteredModels.take(20).forEach { model ->
+                                            DropdownMenuItem(
+                                                text = { Text(model, style = MaterialTheme.typography.bodyMedium) },
+                                                onClick = {
+                                                    onModelChange(model)
+                                                    modelExpanded = false
+                                                    modelSearchQuery = ""
+                                                }
+                                            )
+                                        }
+                                        if (filteredModels.size > 20) {
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        "还有 ${filteredModels.size - 20} 个模型...",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                },
+                                                onClick = {}
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                        }
                     }
 
                     if (selectedImageUris.isNotEmpty()) {
@@ -358,23 +561,24 @@ fun ChatScreen(
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
-                            modifier = Modifier.weight(1f).height(56.dp),
+                            modifier = Modifier.weight(1f),
                             placeholder = {
                                 Text(
                                     text = if (isImageMode) "输入图片描述生成图片..." else "输入消息...",
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             },
-                            shape = RoundedCornerShape(28.dp),
+                            shape = RoundedCornerShape(24.dp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                                 focusedIndicatorColor = MaterialTheme.colorScheme.primary,
                                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                                 cursorColor = MaterialTheme.colorScheme.primary
                             ),
-                            maxLines = 3
+                            maxLines = 4,
+                            textStyle = MaterialTheme.typography.bodyLarge
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))

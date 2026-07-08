@@ -2,6 +2,7 @@ package com.aichat.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.aichat.app.data.local.AgentDao
 import com.aichat.app.data.local.ApiEndpointDao
 import com.aichat.app.data.local.AppDatabase
 import com.aichat.app.data.local.ConversationDao
@@ -44,5 +45,11 @@ object AppModule {
     @Singleton
     fun provideApiEndpointDao(database: AppDatabase): ApiEndpointDao {
         return database.apiEndpointDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAgentDao(database: AppDatabase): AgentDao {
+        return database.agentDao()
     }
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aichat.app.data.local.AgentDao
 import com.aichat.app.data.model.ApiEndpoint
 import com.aichat.app.data.model.Message
 import com.aichat.app.data.remote.ApiManager
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
@@ -26,6 +28,7 @@ import javax.inject.Inject
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     private val apiManager: ApiManager,
+    private val agentDao: AgentDao,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -144,11 +147,15 @@ class ChatViewModel @Inject constructor(
 
             withContext(Dispatchers.IO) {
                 try {
+                    val agent = agentDao.getSelectedAgent()
+                    val systemPrompt = agent?.systemPrompt?.takeIf { it.isNotBlank() }
+
                     val call = repository.sendMessageStream(
                         conversationId = conversationId,
                         currentMessage = text,
                         imageUris = imageUris,
-                        model = model
+                        model = model,
+                        systemPrompt = systemPrompt
                     )
                     streamCall = call
 

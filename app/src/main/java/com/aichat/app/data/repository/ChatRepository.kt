@@ -165,7 +165,8 @@ class ChatRepository @Inject constructor(
         conversationId: String,
         currentMessage: String,
         imageUris: List<String> = emptyList(),
-        model: String = "gpt-3.5-turbo"
+        model: String = "gpt-3.5-turbo",
+        systemPrompt: String? = null
     ): Call<ResponseBody> {
         val historyMessages = getMessagesList(conversationId)
 
@@ -183,7 +184,7 @@ class ChatRepository @Inject constructor(
         )
 
         val allMessages = historyMessages + userMessage
-        val chatMessages = buildChatMessages(allMessages)
+        val chatMessages = buildChatMessages(allMessages, systemPrompt)
 
         Log.d("ChatRepository", "Sending ${chatMessages.size} messages to API, model: $model")
 
@@ -208,14 +209,14 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    private fun buildChatMessages(messages: List<Message>): List<ChatMessage> {
+    private fun buildChatMessages(messages: List<Message>, systemPrompt: String? = null): List<ChatMessage> {
         val limitedMessages = if (messages.size > maxHistoryMessages) {
             messages.takeLast(maxHistoryMessages)
         } else {
             messages
         }
 
-        return limitedMessages.map { msg ->
+        val chatMessages = limitedMessages.map { msg ->
             val imageUris = msg.imageUris?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             if (imageUris.isNotEmpty()) {
                 val parts = mutableListOf<ContentPart>()
@@ -230,6 +231,12 @@ class ChatRepository @Inject constructor(
             } else {
                 ChatMessage(role = msg.role, content = msg.content)
             }
+        }
+
+        return if (systemPrompt != null && systemPrompt.isNotBlank()) {
+            listOf(ChatMessage(role = "system", content = systemPrompt)) + chatMessages
+        } else {
+            chatMessages
         }
     }
 

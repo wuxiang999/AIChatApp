@@ -36,6 +36,18 @@ data class ApiEndpoint(
     val isSelected: Boolean = false
 )
 
+@Entity(tableName = "agents")
+data class Agent(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val description: String,
+    val systemPrompt: String,
+    val voice: String = "",
+    val avatarBase64: String? = null,
+    val createdAt: Date,
+    val isSelected: Boolean = false
+)
+
 data class Announcement(
     val content: String,
     val enabled: Boolean,
