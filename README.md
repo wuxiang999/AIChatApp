@@ -99,6 +99,10 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.0.1
+- 🔧 修复 GitHub Actions 构建失败问题（android-actions/setup-android API 更新）
+- ⚡ 优化 CI/CD 工作流配置
+
 ### v2.0.0
 - 🎭 **智能体系统** - 支持创建和管理智能体，克隆家人语音人设，自定义系统提示词
 - 🔄 **消息撤回** - 发送者消息支持长按撤回
