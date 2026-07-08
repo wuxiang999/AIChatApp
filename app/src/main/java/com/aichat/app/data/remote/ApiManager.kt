@@ -35,17 +35,7 @@ class ApiManager @Inject constructor(
 
     suspend fun initialize() {
         val endpoints = apiEndpointDao.getAllEndpoints().first()
-        if (endpoints.isEmpty()) {
-            val defaultEndpoint = ApiEndpoint(
-                name = "wsocket",
-                url = "https://ai.wsocket.xyz/v1",
-                apiKey = "sk-7Nb8FwAmO5zvmEzwkHlBXWX5RaDycdkPAmeKZqT2Ql5cDEQQ",
-                isSelected = true
-            )
-            apiEndpointDao.insertEndpoint(defaultEndpoint)
-            currentEndpoint = defaultEndpoint
-            updateRetrofit(defaultEndpoint.url)
-        } else {
+        if (endpoints.isNotEmpty()) {
             val selected = endpoints.find { it.isSelected } ?: endpoints.first()
             currentEndpoint = selected
             updateRetrofit(selected.url)
