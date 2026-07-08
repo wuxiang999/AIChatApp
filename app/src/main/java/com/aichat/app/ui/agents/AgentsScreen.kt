@@ -59,7 +59,7 @@ fun AgentsScreen(
 ) {
     val agents by viewModel.agents.collectAsState()
     val selectedAgentId by viewModel.selectedAgentId.collectAsState()
-    val showAddDialog by viewModel.showAddDialog.collectAsState()
+    val showAddDialog by viewModel.isAddDialogVisible.collectAsState()
 
     Scaffold(
         topBar = {
