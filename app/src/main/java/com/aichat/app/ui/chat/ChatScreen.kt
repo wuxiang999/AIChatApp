@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
@@ -196,12 +197,13 @@ fun ChatScreen(
                                 value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("API端点", style = MaterialTheme.typography.bodyMedium) },
+                                label = { Text("API端点", style = MaterialTheme.typography.bodySmall) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = endpointExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(),
-                                shape = RoundedCornerShape(16.dp),
+                                    .menuAnchor()
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -211,7 +213,7 @@ fun ChatScreen(
                                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                             ExposedDropdownMenu(
                                 expanded = endpointExpanded,
@@ -219,34 +221,54 @@ fun ChatScreen(
                             ) {
                                 endpoints.forEach { endpoint ->
                                     DropdownMenuItem(
-                                        text = { Text(endpoint.name) },
+                                        text = { Text(endpoint.name, style = MaterialTheme.typography.bodySmall) },
                                         onClick = {
                                             onEndpointChange(endpoint.id)
                                             endpointExpanded = false
+                                        },
+                                        trailingIcon = {
+                                            if (endpoint.id == currentEndpointId) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
                                         }
                                     )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
 
                     if (availableModels.isNotEmpty()) {
+                        var modelSearchQuery by remember { mutableStateOf("") }
+                        val filteredModels = remember(availableModels, modelSearchQuery) {
+                            if (modelSearchQuery.isBlank()) availableModels
+                            else availableModels.filter { it.contains(modelSearchQuery, ignoreCase = true) }
+                        }
+
                         ExposedDropdownMenuBox(
                             expanded = modelExpanded,
-                            onExpandedChange = { modelExpanded = it },
+                            onExpandedChange = {
+                                modelExpanded = it
+                                if (!it) modelSearchQuery = ""
+                            },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
                                 value = currentModel,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
+                                label = { Text("当前模型", style = MaterialTheme.typography.bodySmall) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor(),
-                                shape = RoundedCornerShape(16.dp),
+                                    .menuAnchor()
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 singleLine = true,
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -256,24 +278,84 @@ fun ChatScreen(
                                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
                             )
                             ExposedDropdownMenu(
                                 expanded = modelExpanded,
-                                onDismissRequest = { modelExpanded = false }
+                                onDismissRequest = {
+                                    modelExpanded = false
+                                    modelSearchQuery = ""
+                                }
                             ) {
-                                availableModels.forEach { model ->
-                                    DropdownMenuItem(
-                                        text = { Text(model) },
-                                        onClick = {
-                                            onModelChange(model)
-                                            modelExpanded = false
-                                        }
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    OutlinedTextField(
+                                        value = modelSearchQuery,
+                                        onValueChange = { modelSearchQuery = it },
+                                        placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodySmall) },
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        textStyle = MaterialTheme.typography.bodySmall,
+                                        colors = TextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                                        )
                                     )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    androidx.compose.foundation.layout.Box(
+                                        modifier = Modifier
+                                            .height(200.dp)
+                                            .fillMaxWidth()
+                                    ) {
+                                        LazyColumn(
+                                            modifier = Modifier.fillMaxSize(),
+                                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                                        ) {
+                                            if (filteredModels.isEmpty()) {
+                                                item {
+                                                    Text(
+                                                        text = "未找到匹配的模型",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.padding(8.dp)
+                                                    )
+                                                }
+                                            } else {
+                                                items(filteredModels) { model ->
+                                                    val isSelected = model == currentModel
+                                                    DropdownMenuItem(
+                                                        text = {
+                                                            Text(
+                                                                text = model,
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                maxLines = 1,
+                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            onModelChange(model)
+                                                            modelExpanded = false
+                                                            modelSearchQuery = ""
+                                                        },
+                                                        trailingIcon = {
+                                                            if (isSelected) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Check,
+                                                                    contentDescription = null,
+                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(16.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
 
                     if (selectedImageUris.isNotEmpty()) {
@@ -313,25 +395,25 @@ fun ChatScreen(
                     ) {
                         IconButton(
                             onClick = { imagePickerLauncher.launch("image/*") },
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AddPhotoAlternate,
                                 contentDescription = "上传图片",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
 
                         IconButton(
                             onClick = { filePickerLauncher.launch("*/*") },
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AttachFile,
                                 contentDescription = "上传文件",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
 
@@ -343,13 +425,13 @@ fun ChatScreen(
                                     selectedImageUris.clear()
                                 }
                             },
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Image,
                                 contentDescription = if (isImageMode) "图片生成模式" else "切换图片生成",
                                 tint = if (isImageMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
 
@@ -358,14 +440,16 @@ fun ChatScreen(
                         OutlinedTextField(
                             value = text,
                             onValueChange = { text = it },
-                            modifier = Modifier.weight(1f).height(56.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(44.dp),
                             placeholder = {
                                 Text(
                                     text = if (isImageMode) "输入图片描述生成图片..." else "输入消息...",
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             },
-                            shape = RoundedCornerShape(28.dp),
+                            shape = RoundedCornerShape(22.dp),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.None),
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -374,10 +458,11 @@ fun ChatScreen(
                                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                                 cursorColor = MaterialTheme.colorScheme.primary
                             ),
-                            maxLines = 3
+                            maxLines = 2,
+                            textStyle = MaterialTheme.typography.bodyMedium
                         )
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
                         if (isLoading) {
                             IconButton(
@@ -385,13 +470,13 @@ fun ChatScreen(
                                     focusManager.clearFocus()
                                     onStopGeneration()
                                 },
-                                modifier = Modifier.size(48.dp)
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Stop,
                                     contentDescription = "停止",
                                     tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         } else {
@@ -430,7 +515,7 @@ fun ChatScreen(
                                     text.isNotBlank() || selectedFileContents.isNotEmpty()
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .size(40.dp)
                                     .background(
                                         color = if (isImageMode) {
                                             if (isImageEditMode && text.isNotBlank() && selectedImageUris.isNotEmpty())
@@ -464,7 +549,7 @@ fun ChatScreen(
                                         else
                                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                                     },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
