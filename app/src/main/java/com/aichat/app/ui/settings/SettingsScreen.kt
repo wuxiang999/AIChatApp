@@ -1,5 +1,7 @@
 package com.aichat.app.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +41,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -111,59 +114,55 @@ fun SettingsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "当前 API 端点",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        if (currentEndpoint != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = currentEndpoint!!.name,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = currentEndpoint!!.url,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                            )
-                        } else {
-                            Text(
-                                text = "未配置端点",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "当前端点",
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            if (currentEndpoint != null) {
+                                Text(
+                                    text = currentEndpoint!!.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = currentEndpoint!!.url,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                                    maxLines = 1
+                                )
+                            } else {
+                                Text(
+                                    text = "未配置",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { viewModel.loadModels() },
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Button(
-                                onClick = { viewModel.loadModels() },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("加载模型")
-                            }
-                            OutlinedButtonTest(
-                                onClick = { showTestDialog = true },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("测试连接")
-                            }
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("加载模型", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -231,42 +230,119 @@ fun SettingsScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
                         if (isLoadingModels) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text("加载中...")
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("加载中...", style = MaterialTheme.typography.bodySmall)
                             }
                         } else if (models.isEmpty()) {
                             Text(
                                 text = "点击上方「加载模型」按钮获取模型列表",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodySmall
                             )
                         } else {
-                            Text(
-                                text = "共 ${models.size} 个模型",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            var searchQuery by remember { mutableStateOf("") }
+                            var selectedModel by remember { mutableStateOf<String?>(null) }
+                            val filteredModels = remember(models, searchQuery) {
+                                if (searchQuery.isBlank()) models
+                                else models.filter { it.contains(searchQuery, ignoreCase = true) }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "共 ${models.size} 个模型",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                                Text(
+                                    text = "选中: ${selectedModel ?: "无"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodySmall) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                textStyle = MaterialTheme.typography.bodySmall,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                                )
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+
+                            androidx.compose.foundation.layout.Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(240.dp)
                             ) {
-                                models.take(30).forEach { model ->
-                                    FilterChip(
-                                        selected = false,
-                                        onClick = {},
-                                        label = { Text(model, style = MaterialTheme.typography.labelSmall) },
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                                        )
-                                    )
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    if (filteredModels.isEmpty()) {
+                                        item {
+                                            Text(
+                                                text = "未找到匹配的模型",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(8.dp)
+                                            )
+                                        }
+                                    } else {
+                                        items(filteredModels) { model ->
+                                            val isSelected = model == selectedModel
+                                            androidx.compose.foundation.clickable(
+                                                onClick = {
+                                                    selectedModel = if (isSelected) null else model
+                                                }
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    if (isSelected) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                    } else {
+                                                        Spacer(modifier = Modifier.size(16.dp))
+                                                    }
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = model,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = if (isSelected)
+                                                            MaterialTheme.colorScheme.primary
+                                                        else
+                                                            MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -483,33 +559,21 @@ fun EndpointItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 操作按钮行
-            Row(
+            // 操作按钮行 - 合并为一个加载模型按钮
+            Button(
+                onClick = onLoadModels,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                enabled = !isLoading
             ) {
-                Button(
-                    onClick = onTest,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.NetworkCheck, contentDescription = null, modifier = Modifier.size(16.dp))
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("加载中...", style = MaterialTheme.typography.labelSmall)
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("测试", style = MaterialTheme.typography.labelSmall)
-                }
-                Button(
-                    onClick = onLoadModels,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(8.dp),
-                    enabled = !isLoading
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("模型", style = MaterialTheme.typography.labelSmall)
+                    Text("加载模型", style = MaterialTheme.typography.labelSmall)
                 }
             }
 
@@ -560,20 +624,34 @@ fun EndpointItem(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    maxItemsInEachRow = 2
                 ) {
-                    models.take(10).forEach { model ->
-                        FilterChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(model, style = MaterialTheme.typography.labelSmall) },
-                            shape = RoundedCornerShape(6.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
+                    models.take(6).forEach { model ->
+                        Text(
+                            text = model,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                .weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
+                }
+                if (models.size > 6) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "还有 ${models.size - 6} 个模型...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
                 }
             }
         }
