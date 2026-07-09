@@ -346,7 +346,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-            }
 
             item {
                 Spacer(modifier = Modifier.height(80.dp))
@@ -355,6 +354,7 @@ fun SettingsScreen(
     }
 
     if (showAddDialog) {
+
         EndpointDialog(
             title = "添加 API 端点",
             name = newEndpointName,
