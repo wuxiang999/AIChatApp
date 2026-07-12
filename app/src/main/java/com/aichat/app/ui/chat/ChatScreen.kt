@@ -212,6 +212,7 @@ fun ChatScreen(
                 onImageSizeExpandedChange = { imageSizeExpanded = it },
                 onImageCountChange = onImageCountChange,
                 onImageSizeChange = onImageSizeChange,
+                hasFileContents = selectedFileContents.isNotEmpty(),
                 onSendClick = {
                     focusManager.clearFocus()
                     if (isImageMode) {
@@ -400,6 +401,7 @@ private fun ChatInputBar(
     onImageSizeExpandedChange: (Boolean) -> Unit,
     onImageCountChange: (Int) -> Unit,
     onImageSizeChange: (String) -> Unit,
+    hasFileContents: Boolean,
     onSendClick: () -> Unit,
     onStopClick: () -> Unit,
     onNewConversation: () -> Unit,
@@ -514,7 +516,7 @@ private fun ChatInputBar(
                         if (isImageEditMode) text.isNotBlank() && selectedImageUris.isNotEmpty()
                         else text.isNotBlank()
                     } else {
-                        text.isNotBlank() || selectedFileContents.isNotEmpty()
+                        text.isNotBlank() || hasFileContents
                     }
                     IconButton(
                         onClick = onSendClick,
