@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -477,7 +478,7 @@ private fun ChatInputBar(
                     onValueChange = onTextChange,
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp),
+                        .heightIn(min = 44.dp),
                     placeholder = {
                         Text(
                             text = if (isImageMode) "输入图片描述生成图片..." else "输入消息...",
@@ -493,7 +494,7 @@ private fun ChatInputBar(
                         unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                         cursorColor = MaterialTheme.colorScheme.primary
                     ),
-                    maxLines = 2,
+                    maxLines = 5,
                     textStyle = MaterialTheme.typography.bodyMedium
                 )
 
