@@ -96,7 +96,12 @@ class ChatViewModel @Inject constructor(
 
     fun selectEndpoint(endpointId: Long) {
         viewModelScope.launch {
-            apiManager.selectEndpoint(endpointId)
+            try {
+                apiManager.selectEndpoint(endpointId)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "selectEndpoint error", e)
+                _error.value = "切换端点失败: ${e.message}"
+            }
             loadModels()
         }
     }

@@ -42,9 +42,11 @@ class ApiManager @Inject constructor(
                 apiKey = "sk-7Nb8FwAmO5zvmEzwkHlBXWX5RaDycdkPAmeKZqT2Ql5cDEQQ",
                 isSelected = true
             )
-            apiEndpointDao.insertEndpoint(defaultEndpoint)
-            currentEndpoint = defaultEndpoint
-            updateRetrofit(defaultEndpoint.url)
+            val generatedId = apiEndpointDao.insertEndpoint(defaultEndpoint)
+            // 使用数据库返回的真实 id，避免内存对象 id=0 与数据库 id 不一致
+            val inserted = defaultEndpoint.copy(id = generatedId)
+            currentEndpoint = inserted
+            updateRetrofit(inserted.url)
         } else {
             val selected = endpoints.find { it.isSelected } ?: endpoints.first()
             currentEndpoint = selected
@@ -70,9 +72,13 @@ class ApiManager @Inject constructor(
 
     fun getApiService(): OpenAIApiService {
         if (apiService == null) {
-            throw IllegalStateException("ApiManager not initialized")
+            // 尝试使用 currentEndpoint 的 url 创建临时 service，而非直接抛异常崩溃
+            currentEndpoint?.let { ep ->
+                updateRetrofit(ep.url)
+            }
         }
-        return apiService!!
+        return apiService
+            ?: throw IllegalStateException("ApiManager not initialized: no endpoint configured")
     }
 
     fun getAuthHeader(): String {
@@ -94,22 +100,21 @@ class ApiManager @Inject constructor(
             apiKey = apiKey,
             isSelected = isFirst
         )
-        val id = apiEndpointDao.let {
-            it.insertEndpoint(endpoint)
-            0L
-        }
+        val generatedId = apiEndpointDao.insertEndpoint(endpoint)
         if (isFirst) {
-            currentEndpoint = endpoint
+            // 使用数据库返回的真实 id
+            currentEndpoint = endpoint.copy(id = generatedId)
             updateRetrofit(url)
         }
-        return id
+        return generatedId
     }
 
     suspend fun selectEndpoint(id: Long) {
         apiEndpointDao.clearSelected()
         apiEndpointDao.setSelected(id)
         val endpoints = apiEndpointDao.getAllEndpoints().first()
-        val selected = endpoints.find { it.id == id }
+        val selected = endpoints.find { it.id == id } ?: endpoints.firstOrNull()
+        // 即使目标 id 未找到，也回退到第一个端点，避免 apiService 保持 null 导致崩溃
         selected?.let {
             currentEndpoint = it
             updateRetrofit(it.url)

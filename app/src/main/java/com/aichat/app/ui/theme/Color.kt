@@ -38,6 +38,14 @@ val md_theme_light_inverseSurface = Color(0xFF2D3132)
 val md_theme_light_inversePrimary = Color(0xFF6FD0E0)
 val md_theme_light_surfaceTint = Color(0xFF0B6B7B)
 val md_theme_light_scrim = Color(0xFF000000)
+// Material3 1.2.0 新增 surface container 颜色（显式定义，避免默认透明值导致文字不可见）
+val md_theme_light_surfaceContainer = Color(0xFFEFF1F3)
+val md_theme_light_surfaceContainerHigh = Color(0xFFE9ECF0)
+val md_theme_light_surfaceContainerHighest = Color(0xFFE3E6EA)
+val md_theme_light_surfaceContainerLow = Color(0xFFF2F4F6)
+val md_theme_light_surfaceContainerLowest = Color(0xFFFFFFFF)
+val md_theme_light_surfaceBright = Color(0xFFFBFCFD)
+val md_theme_light_surfaceDim = Color(0xFFD9DBDD)
 
 // ---------- Dark (月下夜空) ----------
 val md_theme_dark_primary = Color(0xFF6FD0E0)
@@ -73,6 +81,14 @@ val md_theme_dark_inverseSurface = Color(0xFFE1E3E4)
 val md_theme_dark_inversePrimary = Color(0xFF0B6B7B)
 val md_theme_dark_surfaceTint = Color(0xFF6FD0E0)
 val md_theme_dark_scrim = Color(0xFF000000)
+// Material3 1.2.0 新增 surface container 颜色（显式定义，避免默认透明值导致文字不可见）
+val md_theme_dark_surfaceContainer = Color(0xFF1E2528)
+val md_theme_dark_surfaceContainerHigh = Color(0xFF283033)
+val md_theme_dark_surfaceContainerHighest = Color(0xFF333B3E)
+val md_theme_dark_surfaceContainerLow = Color(0xFF1A2123)
+val md_theme_dark_surfaceContainerLowest = Color(0xFF0E1416)
+val md_theme_dark_surfaceBright = Color(0xFF3A4144)
+val md_theme_dark_surfaceDim = Color(0xFF0E1416)
 
 // 消息气泡辅助色
 val UserBubbleLight = Color(0xFF0B6B7B)
