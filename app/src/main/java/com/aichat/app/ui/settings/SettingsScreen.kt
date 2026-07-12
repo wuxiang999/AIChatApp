@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -379,7 +380,7 @@ fun EndpointItem(
                                     )
                                 )
                             else
-                                Brush.solid(MaterialTheme.colorScheme.surfaceVariant)
+                                SolidColor(MaterialTheme.colorScheme.surfaceVariant)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
