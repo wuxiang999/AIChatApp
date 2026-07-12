@@ -97,6 +97,15 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.2
+- 🔧 **参考 v1.8.0 优化端点/模型选择器显示**
+  - 移除 EndpointPicker / ModelPicker 的固定 `.height(44.dp)` 约束，避免文字被截断
+  - 文字字号从 `bodySmall` / `bodyMedium` 统一为 `bodyLarge`（显示值）和 `bodyMedium`（标签/菜单项）
+  - 模型列表项 `maxLines` 从 1 提升到 2，长模型名不再被省略号截断
+  - 下拉菜单圆角统一为 16dp，与 v1.8.0 视觉风格一致
+  - 模型搜索框字号提升到 `bodyMedium`，placeholder 和输入文字更清晰
+  - 模型列表高度从 200dp 提升到 240dp，显示更多模型
+
 ### v2.2.1
 - 🐛 **闪退修复** - 修复进入对话列表、选择 API 端点时崩溃问题
   - `ApiManager.initialize()` 插入默认端点后使用数据库真实 id，修复内存 id=0 与数据库不一致
