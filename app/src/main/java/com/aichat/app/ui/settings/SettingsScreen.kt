@@ -17,13 +17,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,8 +34,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,17 +42,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,28 +70,39 @@ fun SettingsScreen(
     val currentEndpoint by viewModel.currentEndpoint.collectAsStateWithLifecycle()
     val models by viewModel.models.collectAsStateWithLifecycle()
     val isLoadingModels by viewModel.isLoadingModels.collectAsStateWithLifecycle()
-    val testResult by viewModel.testResult.collectAsStateWithLifecycle()
     val endpointTestResults by viewModel.endpointTestResults.collectAsStateWithLifecycle()
     val endpointModels by viewModel.endpointModels.collectAsStateWithLifecycle()
     val loadingEndpoints by viewModel.loadingEndpoints.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<ApiEndpoint?>(null) }
-    var showTestDialog by remember { mutableStateOf(false) }
     var newEndpointName by remember { mutableStateOf("") }
     var newEndpointUrl by remember { mutableStateOf("") }
     var newEndpointKey by remember { mutableStateOf("") }
-    var testUrl by remember { mutableStateOf("") }
-    var testKey by remember { mutableStateOf("") }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            androidx.compose.material3.TopAppBar(
-                title = { Text("设置") },
-                scrollBehavior = scrollBehavior
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "设置",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "管理 API 端点与可用模型",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         floatingActionButton = {
@@ -100,7 +114,9 @@ fun SettingsScreen(
                     showAddDialog = true
                 },
                 icon = { Icon(Icons.Default.Add, contentDescription = "添加") },
-                text = { Text("添加端点") }
+                text = { Text("添加端点") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         }
     ) { innerPadding ->
@@ -109,87 +125,15 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "当前端点",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            if (currentEndpoint != null) {
-                                Text(
-                                    text = currentEndpoint!!.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1
-                                )
-                                Text(
-                                    text = currentEndpoint!!.url,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                                    maxLines = 1
-                                )
-                            } else {
-                                Text(
-                                    text = "未配置",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = { viewModel.loadModels() },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("加载模型", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-            }
+            item { CurrentEndpointCard(currentEndpoint, onLoadModels = { viewModel.loadModels() }) }
 
-            item {
-                Text(
-                    text = "API 端点管理",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-            }
+            item { SectionHeader("API 端点管理", icon = Icons.Default.Cloud) }
 
             if (endpoints.isEmpty()) {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "暂无端点，请点击右下角添加",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    EmptyStateBox("暂无端点，请点击右下角添加")
                 }
             } else {
                 items(endpoints, key = { it.id }) { endpoint ->
@@ -211,150 +155,20 @@ fun SettingsScreen(
                             newEndpointKey = endpoint.apiKey
                         },
                         onDelete = { viewModel.deleteEndpoint(endpoint.id) },
-                        onTest = { viewModel.testEndpointForId(endpoint) },
                         onLoadModels = { viewModel.loadModelsForEndpoint(endpoint) }
                     )
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "可用模型",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-            }
+            item { SectionHeader("可用模型", icon = Icons.Default.Bolt) }
 
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        if (isLoadingModels) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text("加载中...", style = MaterialTheme.typography.bodySmall)
-                            }
-                        } else if (models.isEmpty()) {
-                            Text(
-                                text = "点击上方「加载模型」按钮获取模型列表",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        } else {
-                            var searchQuery by remember { mutableStateOf("") }
-                            var selectedModel by remember { mutableStateOf<String?>(null) }
-                            val filteredModels = remember(models, searchQuery) {
-                                if (searchQuery.isBlank()) models
-                                else models.filter { it.contains(searchQuery, ignoreCase = true) }
-                            }
+            item { AvailableModelsCard(models = models, isLoading = isLoadingModels) }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "共 ${models.size} 个模型",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.weight(1f))
-                                Text(
-                                    text = "选中: ${selectedModel ?: "无"}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodySmall) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                textStyle = MaterialTheme.typography.bodySmall,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            androidx.compose.foundation.layout.Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(240.dp)
-                            ) {
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    if (filteredModels.isEmpty()) {
-                                        item {
-                                            Text(
-                                                text = "未找到匹配的模型",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(8.dp)
-                                            )
-                                        }
-                                    } else {
-                                        items(filteredModels) { model ->
-                                            val isSelected = model == selectedModel
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable {
-                                                        selectedModel = if (isSelected) null else model
-                                                    }
-                                                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
-                                                } else {
-                                                    Spacer(modifier = Modifier.size(16.dp))
-                                                }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = model,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isSelected)
-                                                            MaterialTheme.colorScheme.primary
-                                                        else
-                                                            MaterialTheme.colorScheme.onSurface,
-                                                        maxLines = 1,
-                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                                        modifier = Modifier.weight(1f)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-            item {
-                Spacer(modifier = Modifier.height(80.dp))
-            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 
     if (showAddDialog) {
-
         EndpointDialog(
             title = "添加 API 端点",
             name = newEndpointName,
@@ -391,95 +205,131 @@ fun SettingsScreen(
             onDismiss = { showEditDialog = null }
         )
     }
+}
 
-    if (showTestDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showTestDialog = false
-                viewModel.clearTestResult()
-            },
-            title = { Text("测试连接") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = testUrl,
-                        onValueChange = { testUrl = it },
-                        label = { Text("API 地址") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = testKey,
-                        onValueChange = { testKey = it },
-                        label = { Text("API Key") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    testResult?.let { result ->
-                        result.onSuccess { count ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                                )
-                            ) {
-                                Text(
-                                    text = "✓ 连接成功！获取到 $count 个模型",
-                                    modifier = Modifier.padding(12.dp),
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                                )
-                            }
-                        }
-                        result.onFailure { error ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
-                                )
-                            ) {
-                                Text(
-                                    text = "✗ 连接失败: ${error.message}",
-                                    modifier = Modifier.padding(12.dp),
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.testEndpoint(testUrl, testKey) }) {
-                    Text("测试")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showTestDialog = false
-                    viewModel.clearTestResult()
-                }) {
-                    Text("关闭")
-                }
-            }
+@Composable
+private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(width = 4.dp, height = 18.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(MaterialTheme.colorScheme.primary)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
 
 @Composable
-fun OutlinedButtonTest(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
+private fun EmptyStateBox(text: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CurrentEndpointCard(
+    currentEndpoint: ApiEndpoint?,
+    onLoadModels: () -> Unit
 ) {
-    androidx.compose.material3.OutlinedButton(
-        onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        content = content
-    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Cloud,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "当前端点",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                if (currentEndpoint != null) {
+                    Text(
+                        text = currentEndpoint.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = currentEndpoint.url,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else {
+                    Text(
+                        text = "未配置",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onLoadModels,
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("加载模型", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -493,50 +343,72 @@ fun EndpointItem(
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onTest: () -> Unit,
     onLoadModels: () -> Unit
 ) {
     Card(
         onClick = onSelect,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
                 MaterialTheme.colorScheme.secondaryContainer
             else
                 MaterialTheme.colorScheme.surface
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "已选中",
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.size(24.dp))
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected)
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
+                                )
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "已选中",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = endpoint.name,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isSelected)
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = endpoint.url,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 IconButton(onClick = onEdit) {
@@ -557,11 +429,10 @@ fun EndpointItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 操作按钮行 - 合并为一个加载模型按钮
             Button(
                 onClick = onLoadModels,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
@@ -575,44 +446,24 @@ fun EndpointItem(
                 }
             }
 
-            // 测试结果
             testResult?.let { result ->
                 Spacer(modifier = Modifier.height(8.dp))
                 result.onSuccess { count ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    ) {
-                        Text(
-                            text = "✓ 连接成功，$count 个模型",
-                            modifier = Modifier.padding(8.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
+                    ResultCard(
+                        text = "✓ 连接成功，$count 个模型",
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        content = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
                 }
                 result.onFailure { error ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            text = "✗ ${error.message}",
-                            modifier = Modifier.padding(8.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
+                    ResultCard(
+                        text = "✗ ${error.message}",
+                        container = MaterialTheme.colorScheme.errorContainer,
+                        content = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             }
 
-            // 模型列表
             if (!models.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -639,7 +490,7 @@ fun EndpointItem(
                                 .padding(horizontal = 6.dp, vertical = 3.dp)
                                 .weight(1f, fill = false),
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -650,6 +501,146 @@ fun EndpointItem(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultCard(text: String, container: androidx.compose.ui.graphics.Color, content: androidx.compose.ui.graphics.Color) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = container)
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(8.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = content
+        )
+    }
+}
+
+@Composable
+private fun AvailableModelsCard(
+    models: List<String>,
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            if (isLoading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("加载中...", style = MaterialTheme.typography.bodySmall)
+                }
+            } else if (models.isEmpty()) {
+                Text(
+                    text = "点击上方「加载模型」按钮获取模型列表",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                var searchQuery by remember { mutableStateOf("") }
+                var selectedModel by remember { mutableStateOf<String?>(null) }
+                val filteredModels = remember(models, searchQuery) {
+                    if (searchQuery.isBlank()) models
+                    else models.filter { it.contains(searchQuery, ignoreCase = true) }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "共 ${models.size} 个模型",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "选中: ${selectedModel ?: "无"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                ) {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        if (filteredModels.isEmpty()) {
+                            item {
+                                Text(
+                                    text = "未找到匹配的模型",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                        } else {
+                            items(filteredModels) { model ->
+                                val isSelected = model == selectedModel
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            selectedModel = if (isSelected) null else model
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = model,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isSelected)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -699,14 +690,10 @@ fun EndpointDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("保存")
-            }
+            TextButton(onClick = onConfirm) { Text("保存") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消")
-            }
+            TextButton(onClick = onDismiss) { Text("取消") }
         }
     )
 }
