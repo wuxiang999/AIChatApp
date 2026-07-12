@@ -81,15 +81,23 @@ class ChatViewModel @Inject constructor(
 
     private fun initializeAgents() {
         viewModelScope.launch {
-            repository.initializeAgents()
+            try {
+                repository.initializeAgents()
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "initializeAgents error", e)
+            }
         }
     }
 
     private fun loadEndpoints() {
         viewModelScope.launch {
-            apiManager.getAllEndpoints().collect { endpointList ->
-                _endpoints.value = endpointList
-                _currentEndpointId.value = endpointList.find { it.isSelected }?.id
+            try {
+                apiManager.getAllEndpoints().collect { endpointList ->
+                    _endpoints.value = endpointList
+                    _currentEndpointId.value = endpointList.find { it.isSelected }?.id
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "loadEndpoints error", e)
             }
         }
     }
@@ -108,17 +116,25 @@ class ChatViewModel @Inject constructor(
 
     private fun loadMessages() {
         viewModelScope.launch {
-            repository.getMessagesForConversation(conversationId).collect { messages ->
-                _messages.value = messages
+            try {
+                repository.getMessagesForConversation(conversationId).collect { messages ->
+                    _messages.value = messages
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "loadMessages error", e)
             }
         }
     }
 
     private fun loadConversationInfo() {
         viewModelScope.launch {
-            val conv = repository.getConversation(conversationId)
-            conv?.let {
-                _currentModel.value = it.model
+            try {
+                val conv = repository.getConversation(conversationId)
+                conv?.let {
+                    _currentModel.value = it.model
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "loadConversationInfo error", e)
             }
         }
     }

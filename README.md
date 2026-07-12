@@ -97,6 +97,14 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.3
+- 🐛 **闪退修复** - 修复进入聊天界面时闪退问题
+  - `ChatViewModel` 的 `initializeAgents` / `loadMessages` / `loadConversationInfo` / `loadEndpoints` 四个 init 协程补充 try-catch 异常保护，避免 DB 或 Flow 异常作为未捕获异常导致崩溃
+  - `AIChatApplication.onCreate()` 的 `apiManager.initialize()` 协程补充 `CoroutineExceptionHandler` 与 try-catch，避免初始化失败（如 URL 格式异常）导致启动崩溃
+- ⌨️ **输入框文字显示修复** - 修复聊天输入框文字被截断问题
+  - 输入框移除固定 `.height(44.dp)` 约束，改为 `.heightIn(min = 44.dp)`，输入框可随内容自适应增高
+  - `maxLines` 从 2 提升到 5，多行输入文字完整显示不被裁剪
+
 ### v2.2.2
 - 🔧 **参考 v1.8.0 优化端点/模型选择器显示**
   - 移除 EndpointPicker / ModelPicker 的固定 `.height(44.dp)` 约束，避免文字被截断
