@@ -97,6 +97,18 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.1
+- 🐛 **闪退修复** - 修复进入对话列表、选择 API 端点时崩溃问题
+  - `ApiManager.initialize()` 插入默认端点后使用数据库真实 id，修复内存 id=0 与数据库不一致
+  - `selectEndpoint()` 找不到目标 id 时回退到第一个端点，避免 `apiService` 为 null 导致崩溃
+  - `getApiService()` 在 `apiService` 为 null 时尝试用 `currentEndpoint` 创建临时 service
+  - `addEndpoint()` 返回 DAO 插入的真实 id（DAO 返回类型改为 `Long`）
+  - `ChatViewModel`/`SettingsViewModel` 的 `selectEndpoint` 添加 try-catch 异常保护
+- 🎨 **文字显示修复** - 修复 API 端点和模型列表下拉框文字不可见问题
+  - 主题显式设置 Material3 1.2.0 新增的 `surfaceContainer` / `surfaceContainerHigh` 等 7 个颜色角色
+  - `menuTextFieldColors()` 改用 `surfaceVariant.copy(alpha=0.5f)`，并补充 label 颜色
+  - `ModelPicker` / `SettingsScreen` 模型搜索框补充 `focusedTextColor` / `unfocusedTextColor`
+
 ### v2.2.0
 - 🎨 **UI 全面重构** - 月下主题配色与字体系统升级，新增完整 Material 3 字号体系
 - 🏗️ **逻辑重构** - 抽屉、ChatScreen、SettingsScreen 等模块组件化拆分，提取 `MessageBubble` 独立文件，逻辑分层更清晰
