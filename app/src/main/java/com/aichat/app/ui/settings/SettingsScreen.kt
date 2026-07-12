@@ -379,7 +379,7 @@ fun EndpointItem(
                                     )
                                 )
                             else
-                                MaterialTheme.colorScheme.surfaceVariant
+                                Brush.solid(MaterialTheme.colorScheme.surfaceVariant)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
