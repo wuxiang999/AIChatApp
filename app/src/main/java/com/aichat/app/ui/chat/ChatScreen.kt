@@ -607,16 +607,15 @@ private fun EndpointPicker(
             value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
             onValueChange = {},
             readOnly = true,
-            label = { Text("API端点", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("API端点", style = MaterialTheme.typography.bodyMedium) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
-                .height(44.dp),
-            shape = RoundedCornerShape(12.dp),
+                .menuAnchor(),
+            shape = RoundedCornerShape(16.dp),
             singleLine = true,
             colors = menuTextFieldColors(),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -624,7 +623,14 @@ private fun EndpointPicker(
         ) {
             endpoints.forEach { endpoint ->
                 DropdownMenuItem(
-                    text = { Text(endpoint.name, style = MaterialTheme.typography.bodySmall) },
+                    text = {
+                        Text(
+                            text = endpoint.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    },
                     onClick = {
                         onEndpointChange(endpoint.id)
                         onExpandedChange(false)
@@ -672,16 +678,15 @@ private fun ModelPicker(
             value = currentModel,
             onValueChange = {},
             readOnly = true,
-            label = { Text("当前模型", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
-                .height(44.dp),
-            shape = RoundedCornerShape(12.dp),
+                .menuAnchor(),
+            shape = RoundedCornerShape(16.dp),
             singleLine = true,
             colors = menuTextFieldColors(),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -694,11 +699,11 @@ private fun ModelPicker(
                 OutlinedTextField(
                     value = modelSearchQuery,
                     onValueChange = { modelSearchQuery = it },
-                    placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodySmall) },
+                    placeholder = { Text("搜索模型...", style = MaterialTheme.typography.bodyMedium) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -709,7 +714,7 @@ private fun ModelPicker(
                 Spacer(modifier = Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
-                        .height(200.dp)
+                        .height(240.dp)
                         .fillMaxWidth()
                 ) {
                     LazyColumn(
@@ -720,7 +725,7 @@ private fun ModelPicker(
                             item {
                                 Text(
                                     text = "未找到匹配的模型",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(8.dp)
                                 )
@@ -732,8 +737,8 @@ private fun ModelPicker(
                                     text = {
                                         Text(
                                             text = model,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            maxLines = 1,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 2,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                         )
                                     },
