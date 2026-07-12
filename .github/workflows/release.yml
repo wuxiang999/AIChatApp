@@ -52,13 +52,13 @@ jobs:
       - name: Rename APK with version
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/release/app-release.apk release/月下AI-v${{ env.VERSION }}.apk
+          cp app/build/outputs/apk/release/app-release.apk release/YueXiaAI-v${{ env.VERSION }}.apk
 
       - name: Create Release (tag push)
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          files: release/月下AI-v${{ env.VERSION }}.apk
+          files: release/YueXiaAI-v${{ env.VERSION }}.apk
           name: "月下AI v${{ env.VERSION }}"
           body: |
             ## 月下AI v${{ env.VERSION }}
@@ -84,7 +84,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
-          files: release/月下AI-v${{ env.VERSION }}.apk
+          files: release/YueXiaAI-v${{ env.VERSION }}.apk
           name: "月下AI v${{ env.VERSION }}"
           body: |
             ## 月下AI v${{ env.VERSION }}
