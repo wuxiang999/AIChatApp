@@ -44,7 +44,14 @@ private val DarkColorScheme = darkColorScheme(
     inverseSurface = md_theme_dark_inverseSurface,
     inversePrimary = md_theme_dark_inversePrimary,
     surfaceTint = md_theme_dark_surfaceTint,
-    scrim = md_theme_dark_scrim
+    scrim = md_theme_dark_scrim,
+    surfaceContainer = md_theme_dark_surfaceContainer,
+    surfaceContainerHigh = md_theme_dark_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_dark_surfaceContainerHighest,
+    surfaceContainerLow = md_theme_dark_surfaceContainerLow,
+    surfaceContainerLowest = md_theme_dark_surfaceContainerLowest,
+    surfaceBright = md_theme_dark_surfaceBright,
+    surfaceDim = md_theme_dark_surfaceDim
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -76,7 +83,14 @@ private val LightColorScheme = lightColorScheme(
     inverseSurface = md_theme_light_inverseSurface,
     inversePrimary = md_theme_light_inversePrimary,
     surfaceTint = md_theme_light_surfaceTint,
-    scrim = md_theme_light_scrim
+    scrim = md_theme_light_scrim,
+    surfaceContainer = md_theme_light_surfaceContainer,
+    surfaceContainerHigh = md_theme_light_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_light_surfaceContainerHighest,
+    surfaceContainerLow = md_theme_light_surfaceContainerLow,
+    surfaceContainerLowest = md_theme_light_surfaceContainerLowest,
+    surfaceBright = md_theme_light_surfaceBright,
+    surfaceDim = md_theme_light_surfaceDim
 )
 
 @Composable

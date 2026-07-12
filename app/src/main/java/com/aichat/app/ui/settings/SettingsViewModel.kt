@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import android.util.Log
 import javax.inject.Inject
 
 @HiltViewModel
@@ -132,7 +133,11 @@ class SettingsViewModel @Inject constructor(
 
     fun selectEndpoint(id: Long) {
         viewModelScope.launch {
-            apiManager.selectEndpoint(id)
+            try {
+                apiManager.selectEndpoint(id)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "selectEndpoint error", e)
+            }
             loadCurrentEndpoint()
             _models.value = emptyList()
         }

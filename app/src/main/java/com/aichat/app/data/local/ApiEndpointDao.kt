@@ -17,7 +17,7 @@ interface ApiEndpointDao {
     suspend fun getSelectedEndpoint(): ApiEndpoint?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEndpoint(endpoint: ApiEndpoint)
+    suspend fun insertEndpoint(endpoint: ApiEndpoint): Long
 
     @Update
     suspend fun updateEndpoint(endpoint: ApiEndpoint)
