@@ -235,7 +235,7 @@ class ChatViewModel @Inject constructor(
                         prompt = prompt,
                         n = _imageCount.value,
                         size = _imageSize.value,
-                        model = _imageModel.value
+                        model = _currentModel.value
                     )
                     result.onSuccess { urls ->
                         repository.updateAssistantMessage(
@@ -282,7 +282,7 @@ class ChatViewModel @Inject constructor(
                         prompt = prompt,
                         n = _imageCount.value,
                         size = _imageSize.value,
-                        model = _imageModel.value
+                        model = _currentModel.value
                     )
                     result.onSuccess { urls ->
                         repository.updateAssistantMessage(
