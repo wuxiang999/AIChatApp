@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
@@ -680,13 +682,10 @@ private fun ModelPicker(
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // 触发按钮：点击展开 ModalBottomSheet（不再使用 ExposedDropdownMenu，避免 Popup + LazyColumn 固有测量崩溃）
-    OutlinedTextField(
-        value = currentModel,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+    // 触发器：用 Surface + Row + Text 替代 readOnly TextField + clickable
+    // 原因：readOnly OutlinedTextField 的内部 pointerInput 会拦截点击事件，导致
+    // Modifier.clickable 收不到点击，ModalBottomSheet 无法展开
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
@@ -694,10 +693,42 @@ private fun ModelPicker(
                 onExpandedChange(true)
             },
         shape = RoundedCornerShape(16.dp),
-        singleLine = true,
-        colors = menuTextFieldColors(),
-        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
-    )
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (expanded) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "当前模型",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (expanded) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = currentModel,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "展开模型列表",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 
     if (expanded) {
         ModalBottomSheet(
