@@ -391,7 +391,7 @@ class ChatViewModel @Inject constructor(
                                 reasoningContent = fullReasoning.takeIf { it.isNotEmpty() }?.toString()
                             )
 
-                            if (choice.finish_reason != null) {
+                            if (choice.finish_reason.isNullOrEmpty().not()) {
                                 break
                             }
                         }

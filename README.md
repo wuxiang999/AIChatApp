@@ -97,6 +97,23 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.9
+- 🐛 **严重修复：思考模型只显示对话内容第一个 chunk 就中断** - 根治 `finish_reason` 空字符串判断错误
+  - 根因：`processStreamResponse()` 中判断 `if (choice.finish_reason != null) break`，但 API 流式响应的每个 chunk 都带 `finish_reason: ""`（空字符串），只有最后一个 chunk 是 `"stop"`。空字符串 `""` 不是 null，导致第一个 content chunk 到达后就 break，后续对话内容全部丢失
+  - 修复：改为 `if (choice.finish_reason.isNullOrEmpty().not()) break`，只有 `finish_reason` 为非空字符串（如 `"stop"`/`"length"`）才退出循环
+  - 现象：deepseek-v4-flash 等思考模型只显示思考过程卡片 + 对话气泡的"是的"开头，后续内容全丢
+- 🚀 **网络超时优化** - 适配深度思考模型的长响应时间
+  - `readTimeout` 从 120s 提升到 300s，避免思考阶段耗时较长导致连接超时断开
+  - `writeTimeout` 从 30s 提升到 60s，适配图片上传等大请求体
+- 🔇 **日志级别优化** - `HttpLoggingInterceptor` 从 `BODY` 降为 `BASIC`
+  - `BODY` 级别会对流式响应（SSE）进行缓冲复制，可能干扰流式读取并产生大量日志
+  - `BASIC` 级别仅记录请求/响应行，避免对流式响应的潜在干扰
+- ✅ **测试验证 gpt-image-2 绘画功能** - 文生图 + 图生图全链路联调确认正常
+  - 测试端点：`https://ai.11na.cn/v1`，模型：`gpt-image-2`
+  - 文生图（`/v1/images/generations`）：成功返回 `url` + `b64_json`，APP 正确显示图片
+  - 图生图（`/v1/images/edits` Multipart 表单）：成功返回 `url` + `b64_json`，APP 正确显示图片
+  - 图片下载功能支持网络 URL 和 base64 data URI 两种格式
+
 ### v2.2.8
 - ✅ **测试验证 DeepSeek 风格 reasoning_content 思考内容显示** - 全链路联调确认正常
   - 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`

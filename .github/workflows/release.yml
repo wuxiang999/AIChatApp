@@ -64,10 +64,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - ✅ 测试验证 DeepSeek 风格 reasoning_content 思考内容显示，全链路联调确认正常
-            - 🧪 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`
-            - 🔗 全链路打通：流式 SSE 解析 reasoning_content → 累积保存 → MessageBubble 渲染「思考过程」卡片
-            - 💬 对话内容与思考内容分别独立显示，可展开收起
+            - 🐛 严重修复：思考模型只显示对话内容第一个 chunk 就中断（finish_reason 空字符串判断错误）
+            - 🚀 网络超时优化：readTimeout 120s→300s，适配深度思考模型长响应
+            - 🔇 日志级别优化：BODY→BASIC，避免对流式响应的缓冲干扰
+            - ✅ 测试验证 gpt-image-2 文生图 + 图生图功能正常
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -87,10 +87,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - ✅ 测试验证 DeepSeek 风格 reasoning_content 思考内容显示，全链路联调确认正常
-            - 🧪 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`
-            - 🔗 全链路打通：流式 SSE 解析 reasoning_content → 累积保存 → MessageBubble 渲染「思考过程」卡片
-            - 💬 对话内容与思考内容分别独立显示，可展开收起
+            - 🐛 严重修复：思考模型只显示对话内容第一个 chunk 就中断（finish_reason 空字符串判断错误）
+            - 🚀 网络超时优化：readTimeout 120s→300s，适配深度思考模型长响应
+            - 🔇 日志级别优化：BODY→BASIC，避免对流式响应的缓冲干扰
+            - ✅ 测试验证 gpt-image-2 文生图 + 图生图功能正常
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
