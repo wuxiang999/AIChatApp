@@ -64,9 +64,8 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复图片生成时发送按钮不显示停止状态（同步 isLoading 与 isGeneratingImage）
-            - ✅ 全功能联调测试：文生图、图生图、思考模型对话、非思考模型对话均正常
-            - 🔗 跨端点兼容性验证：两种 finish_reason 格式（空字符串/null）均被覆盖
+            - 🐛 修复图片生成返回 422 错误（imageModel 硬编码 dall-e-3，第三方端点不支持）
+            - ✨ 图片生成模型改为跟随当前对话选中模型，用户选 gpt-image-2 即用 gpt-image-2 生成
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -86,9 +85,8 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复图片生成时发送按钮不显示停止状态（同步 isLoading 与 isGeneratingImage）
-            - ✅ 全功能联调测试：文生图、图生图、思考模型对话、非思考模型对话均正常
-            - 🔗 跨端点兼容性验证：两种 finish_reason 格式（空字符串/null）均被覆盖
+            - 🐛 修复图片生成返回 422 错误（imageModel 硬编码 dall-e-3，第三方端点不支持）
+            - ✨ 图片生成模型改为跟随当前对话选中模型，用户选 gpt-image-2 即用 gpt-image-2 生成
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。

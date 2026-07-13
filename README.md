@@ -97,6 +97,12 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.1
+- 🐛 **修复图片生成返回 422 错误** - 图片生成模型跟随当前对话选中模型
+  - 根因：`_imageModel` 硬编码为 `"dall-e-3"`，但第三方端点（如 `ai.11na.cn`）不支持 `dall-e-3`，只支持 `gpt-image-2` 等模型。用户点击图片生成按钮发送后，API 返回 `422 {"error":{"message":"model not found: dall-e-3"}}`
+  - 修复：`generateImage()` / `editImage()` 改用 `_currentModel.value`（当前对话选中的模型）作为图片生成模型。用户在对话界面顶部选择 `gpt-image-2` 后，图片生成自动使用该模型
+  - 效果：用户选择对应端点支持的图片模型即可正常生成，不再因硬编码 `dall-e-3` 导致 422
+
 ### v2.3.0
 - 🐛 **修复图片生成时发送按钮不显示停止状态** - 同步 `isLoading` 与 `isGeneratingImage` 状态
   - 根因：`generateImage()` / `editImage()` 只设置 `_isGeneratingImage.value = true`，但 UI 的发送/停止按钮切换依赖 `_isLoading`。图片生成期间发送按钮仍显示为发送图标而非停止图标，用户无法直观感知正在生成
