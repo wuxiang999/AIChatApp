@@ -134,6 +134,9 @@ fun AIChatNavHost(
                 },
                 onRevokeMessage = { index ->
                     viewModel.revokeMessage(index)
+                },
+                onRefreshModels = {
+                    viewModel.refreshModels()
                 }
             )
         }

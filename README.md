@@ -97,6 +97,14 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.6
+- ✨ **模型选择器增强** - 完善当前端点模型选择与搜索功能
+  - 移除 `availableModels.isNotEmpty()` 显示条件，模型选择器始终显示，确保随时可选择模型
+  - 新增刷新按钮，可手动重新拉取当前端点的模型列表（网络失败或模型未加载时可一键刷新）
+  - 当前端点无模型时显示友好提示「当前端点暂无模型，点击刷新重新加载」，点击区域可触发刷新
+  - 标题栏显示模型总数（共 N 个），搜索无结果时显示「未找到匹配「关键词」的模型」
+  - 搜索功能支持实时过滤，不区分大小写
+
 ### v2.2.5
 - 🐛 **修复点击选择模型按钮闪退** - 根治 ExposedDropdownMenu + LazyColumn 固有测量崩溃
   - 根因：`ModelPicker` 的 `ExposedDropdownMenu` 内部嵌套了 `LazyColumn`。`ExposedDropdownMenu` 内部有 `width(IntrinsicSize.Min)`，触发固有宽度测量传播到 `LazyColumn`，抛出 `IllegalStateException: LazyColumn does not support intrinsic measurements`

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -108,7 +109,8 @@ fun ChatScreen(
     onImageSizeChange: (String) -> Unit,
     onImageModelChange: (String) -> Unit,
     onImageEditModeChange: (Boolean) -> Unit,
-    onRevokeMessage: (Int) -> Unit
+    onRevokeMessage: (Int) -> Unit,
+    onRefreshModels: () -> Unit
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -202,6 +204,7 @@ fun ChatScreen(
                     }
                 },
                 onModelChange = onModelChange,
+                onRefreshModels = onRefreshModels,
                 selectedImageUris = selectedImageUris,
                 onRemoveImage = { idx -> selectedImageUris.removeAt(idx) },
                 onPickImage = { imagePickerLauncher.launch("image/*") },
@@ -391,6 +394,7 @@ private fun ChatInputBar(
     modelExpanded: Boolean,
     onModelExpandedChange: (Boolean) -> Unit,
     onModelChange: (String) -> Unit,
+    onRefreshModels: () -> Unit,
     selectedImageUris: List<String>,
     onRemoveImage: (Int) -> Unit,
     onPickImage: () -> Unit,
@@ -437,16 +441,15 @@ private fun ChatInputBar(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
-            if (availableModels.isNotEmpty()) {
-                ModelPicker(
-                    availableModels = availableModels,
-                    currentModel = currentModel,
-                    expanded = modelExpanded,
-                    onExpandedChange = onModelExpandedChange,
-                    onModelChange = onModelChange
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-            }
+            ModelPicker(
+                availableModels = availableModels,
+                currentModel = currentModel,
+                expanded = modelExpanded,
+                onExpandedChange = onModelExpandedChange,
+                onModelChange = onModelChange,
+                onRefresh = onRefreshModels
+            )
+            Spacer(modifier = Modifier.height(6.dp))
 
             if (selectedImageUris.isNotEmpty()) {
                 SelectedImagesRow(
@@ -667,7 +670,8 @@ private fun ModelPicker(
     currentModel: String,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onModelChange: (String) -> Unit
+    onModelChange: (String) -> Unit,
+    onRefresh: () -> Unit
 ) {
     var modelSearchQuery by remember { mutableStateOf("") }
     val filteredModels = remember(availableModels, modelSearchQuery) {
@@ -708,13 +712,35 @@ private fun ModelPicker(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp)
             ) {
-                Text(
-                    text = "选择模型",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+                // 标题行：标题 + 模型数量 + 刷新按钮
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "选择模型",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (availableModels.isNotEmpty()) {
+                        Text(
+                            text = "共 ${availableModels.size} 个",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                    IconButton(onClick = onRefresh) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "刷新模型列表",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 // 搜索框（在 BottomSheet 内，不在 Popup 内，不会有焦点/IME 冲突）
                 OutlinedTextField(
                     value = modelSearchQuery,
@@ -733,49 +759,88 @@ private fun ModelPicker(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 // 模型列表（ModalBottomSheet 不走 IntrinsicSize.Min，LazyColumn 可安全使用）
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp),
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
-                ) {
-                    if (filteredModels.isEmpty()) {
-                        item {
+                when {
+                    // 端点无模型：提示刷新
+                    availableModels.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp)
+                                .clickable { onRefresh() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "当前端点暂无模型",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "点击刷新重新加载",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    // 搜索无结果
+                    filteredModels.isEmpty() -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = "未找到匹配的模型",
+                                text = "未找到匹配「$modelSearchQuery」的模型",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(8.dp)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    } else {
-                        items(filteredModels) { model ->
-                            val isSelected = model == currentModel
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = model,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        maxLines = 2,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                    )
-                                },
-                                onClick = {
-                                    onModelChange(model)
-                                    onExpandedChange(false)
-                                    modelSearchQuery = ""
-                                },
-                                trailingIcon = {
-                                    if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
+                    }
+                    // 正常列表
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 360.dp),
+                            verticalArrangement = Arrangement.spacedBy(1.dp)
+                        ) {
+                            items(filteredModels) { model ->
+                                val isSelected = model == currentModel
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = model,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                         )
+                                    },
+                                    onClick = {
+                                        onModelChange(model)
+                                        onExpandedChange(false)
+                                        modelSearchQuery = ""
+                                    },
+                                    trailingIcon = {
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
