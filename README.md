@@ -97,6 +97,16 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.2
+- 🐛 **修复图片生成后图片不显示** - 增强图片加载状态处理，避免静默失败
+  - 根因：原 `AsyncImage(model = url)` 在加载失败时静默无提示，无法区分是未加载还是加载失败。当 API 返回的临时 URL 失效、base64 data URI 过大解码失败、或网络问题时，图片区域空白且无任何错误提示，用户感知为"图片不显示"
+  - 修复：改用 `SubcomposeAsyncImage` + `ImageRequest.Builder`，显式处理三种状态：
+    - **加载中**：显示 `CircularProgressIndicator` 转圈动画，让用户知道正在加载
+    - **加载失败**：显示"图片加载失败"红色提示 + URL 前 60 字符，便于排查
+    - **加载成功**：正常显示图片，带 `crossfade` 淡入效果
+  - 同时确保 Coil 的 `ImageRequest` 显式构建，增强 data URI 和网络 URL 的兼容性
+  - 效果：即使图片加载失败，用户也能看到明确的错误提示而非空白；加载过程中有进度反馈
+
 ### v2.3.1
 - 🐛 **修复图片生成返回 422 错误** - 图片生成模型跟随当前对话选中模型
   - 根因：`_imageModel` 硬编码为 `"dall-e-3"`，但第三方端点（如 `ai.11na.cn`）不支持 `dall-e-3`，只支持 `gpt-image-2` 等模型。用户点击图片生成按钮发送后，API 返回 `422 {"error":{"message":"model not found: dall-e-3"}}`
