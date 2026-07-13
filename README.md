@@ -97,6 +97,15 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.5
+- 🐛 **修复点击选择模型按钮闪退** - 根治 ExposedDropdownMenu + LazyColumn 固有测量崩溃
+  - 根因：`ModelPicker` 的 `ExposedDropdownMenu` 内部嵌套了 `LazyColumn`。`ExposedDropdownMenu` 内部有 `width(IntrinsicSize.Min)`，触发固有宽度测量传播到 `LazyColumn`，抛出 `IllegalStateException: LazyColumn does not support intrinsic measurements`
+  - 修复：用 `ModalBottomSheet` 彻底重写 `ModelPicker`，不再使用 `ExposedDropdownMenu`。`ModalBottomSheet` 不依赖 Popup、不走固有测量，`LazyColumn` 可安全使用
+  - 搜索框从 Popup 内移至 BottomSheet 内，消除焦点/IME 冲突
+- 🎨 **bottomBar inset 适配** - 修复 edge-to-edge 下输入栏被导航栏/IME 遮挡
+  - `ChatInputBar` 根 `Surface` 添加 `navigationBarsPadding()` 和 `imePadding()`
+  - `MainActivity` 添加 `windowSoftInputMode="adjustResize"`
+
 ### v2.2.4
 - 🐛 **彻底修复选择端点/模型时闪退** - 根治 Retrofit 非法 URL 导致的 IllegalArgumentException 崩溃
   - `ApiManager.updateRetrofit()` 入口处用 `toHttpUrlOrNull()` 校验 URL 合法性，非法 URL（缺少 http/https 前缀、空串等）不再抛异常，保持旧 service 不变

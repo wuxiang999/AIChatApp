@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +46,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -51,6 +55,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -409,7 +414,10 @@ private fun ChatInputBar(
     onClearConversation: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .imePadding(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp
     ) {
@@ -666,37 +674,48 @@ private fun ModelPicker(
         if (modelSearchQuery.isBlank()) availableModels
         else availableModels.filter { it.contains(modelSearchQuery, ignoreCase = true) }
     }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = {
-            onExpandedChange(it)
-            if (!it) modelSearchQuery = ""
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = currentModel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(),
-            shape = RoundedCornerShape(16.dp),
-            singleLine = true,
-            colors = menuTextFieldColors(),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
+    // 触发按钮：点击展开 ModalBottomSheet（不再使用 ExposedDropdownMenu，避免 Popup + LazyColumn 固有测量崩溃）
+    OutlinedTextField(
+        value = currentModel,
+        onValueChange = {},
+        readOnly = true,
+        label = { Text("当前模型", style = MaterialTheme.typography.bodyMedium) },
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                modelSearchQuery = ""
+                onExpandedChange(true)
+            },
+        shape = RoundedCornerShape(16.dp),
+        singleLine = true,
+        colors = menuTextFieldColors(),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+    )
+
+    if (expanded) {
+        ModalBottomSheet(
             onDismissRequest = {
                 onExpandedChange(false)
                 modelSearchQuery = ""
-            }
+            },
+            sheetState = sheetState
         ) {
-            Column(modifier = Modifier.padding(8.dp)) {
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
+            ) {
+                Text(
+                    text = "选择模型",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                // 搜索框（在 BottomSheet 内，不在 Popup 内，不会有焦点/IME 冲突）
                 OutlinedTextField(
                     value = modelSearchQuery,
                     onValueChange = { modelSearchQuery = it },
@@ -712,54 +731,51 @@ private fun ModelPicker(
                         unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
+                Spacer(modifier = Modifier.height(8.dp))
+                // 模型列表（ModalBottomSheet 不走 IntrinsicSize.Min，LazyColumn 可安全使用）
+                LazyColumn(
                     modifier = Modifier
-                        .height(240.dp)
                         .fillMaxWidth()
+                        .heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(1.dp)
-                    ) {
-                        if (filteredModels.isEmpty()) {
-                            item {
-                                Text(
-                                    text = "未找到匹配的模型",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                            }
-                        } else {
-                            items(filteredModels) { model ->
-                                val isSelected = model == currentModel
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = model,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 2,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    if (filteredModels.isEmpty()) {
+                        item {
+                            Text(
+                                text = "未找到匹配的模型",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    } else {
+                        items(filteredModels) { model ->
+                            val isSelected = model == currentModel
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = model,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                },
+                                onClick = {
+                                    onModelChange(model)
+                                    onExpandedChange(false)
+                                    modelSearchQuery = ""
+                                },
+                                trailingIcon = {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                    },
-                                    onClick = {
-                                        onModelChange(model)
-                                        onExpandedChange(false)
-                                        modelSearchQuery = ""
-                                    },
-                                    trailingIcon = {
-                                        if (isSelected) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
