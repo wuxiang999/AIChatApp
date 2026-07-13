@@ -64,9 +64,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复进入聊天界面时闪退问题（ChatViewModel init 协程补充异常保护）
-            - 🐛 修复 AIChatApplication 初始化失败导致启动崩溃问题
-            - ⌨️ 修复聊天输入框文字被截断问题，输入框自适应增高，多行文字完整显示
+            - 🐛 彻底修复选择 API 端点/模型时闪退问题（Retrofit 非法 URL 校验 + 全链路异常保护）
+            - 🛡️ 所有 ViewModel 协程方法补充 try-catch，杜绝未捕获异常导致闪退
+            - 🔒 ApiManager 字段标记 @Volatile，修复多线程并发竞态
+            - ⌨️ 修复聊天输入框文字被截断问题（v2.2.3）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -86,9 +87,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复进入聊天界面时闪退问题（ChatViewModel init 协程补充异常保护）
-            - 🐛 修复 AIChatApplication 初始化失败导致启动崩溃问题
-            - ⌨️ 修复聊天输入框文字被截断问题，输入框自适应增高，多行文字完整显示
+            - 🐛 彻底修复选择 API 端点/模型时闪退问题（Retrofit 非法 URL 校验 + 全链路异常保护）
+            - 🛡️ 所有 ViewModel 协程方法补充 try-catch，杜绝未捕获异常导致闪退
+            - 🔒 ApiManager 字段标记 @Volatile，修复多线程并发竞态
+            - ⌨️ 修复聊天输入框文字被截断问题（v2.2.3）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。

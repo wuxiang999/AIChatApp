@@ -1,5 +1,6 @@
 package com.aichat.app.ui.conversations
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aichat.app.data.model.Conversation
@@ -28,8 +29,12 @@ class ConversationsViewModel @Inject constructor(
 
     private fun loadConversations() {
         viewModelScope.launch {
-            repository.getAllConversations().collect { conversations ->
-                _conversations.value = conversations
+            try {
+                repository.getAllConversations().collect { conversations ->
+                    _conversations.value = conversations
+                }
+            } catch (e: Exception) {
+                Log.e("ConversationsViewModel", "loadConversations error", e)
             }
         }
     }
@@ -45,13 +50,21 @@ class ConversationsViewModel @Inject constructor(
 
     fun deleteConversation(conversationId: String) {
         viewModelScope.launch {
-            repository.deleteConversation(conversationId)
+            try {
+                repository.deleteConversation(conversationId)
+            } catch (e: Exception) {
+                Log.e("ConversationsViewModel", "deleteConversation error", e)
+            }
         }
     }
 
     fun updateConversationTitle(conversationId: String, title: String) {
         viewModelScope.launch {
-            repository.updateConversationTitle(conversationId, title)
+            try {
+                repository.updateConversationTitle(conversationId, title)
+            } catch (e: Exception) {
+                Log.e("ConversationsViewModel", "updateConversationTitle error", e)
+            }
         }
     }
 }

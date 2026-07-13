@@ -106,11 +106,11 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 apiManager.selectEndpoint(endpointId)
+                loadModels()
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "selectEndpoint error", e)
                 _error.value = "切换端点失败: ${e.message}"
             }
-            loadModels()
         }
     }
 
@@ -416,20 +416,32 @@ class ChatViewModel @Inject constructor(
 
     fun clearConversation() {
         viewModelScope.launch {
-            repository.clearConversation(conversationId)
+            try {
+                repository.clearConversation(conversationId)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "clearConversation error", e)
+            }
         }
     }
 
     fun setModel(model: String) {
         _currentModel.value = model
         viewModelScope.launch {
-            repository.updateConversationModel(conversationId, model)
+            try {
+                repository.updateConversationModel(conversationId, model)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "setModel error", e)
+            }
         }
     }
 
     fun revokeMessage(index: Int) {
         viewModelScope.launch {
-            repository.revokeMessage(conversationId, index)
+            try {
+                repository.revokeMessage(conversationId, index)
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "revokeMessage error", e)
+            }
         }
     }
 

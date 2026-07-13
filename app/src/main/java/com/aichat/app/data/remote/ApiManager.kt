@@ -5,6 +5,7 @@ import com.aichat.app.data.local.ApiEndpointDao
 import com.aichat.app.data.model.ApiEndpoint
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -17,8 +18,11 @@ import javax.inject.Singleton
 class ApiManager @Inject constructor(
     private val apiEndpointDao: ApiEndpointDao
 ) {
+    @Volatile
     private var currentEndpoint: ApiEndpoint? = null
+    @Volatile
     private var retrofit: Retrofit? = null
+    @Volatile
     private var apiService: OpenAIApiService? = null
 
     private val okHttpClient: OkHttpClient by lazy {
@@ -54,20 +58,37 @@ class ApiManager @Inject constructor(
         }
     }
 
-    private fun updateRetrofit(baseUrl: String) {
+    /**
+     * 更新 Retrofit 实例。对非法 URL 做保护，避免 Retrofit.Builder().baseUrl() 抛出
+     * IllegalArgumentException 导致应用闪退。URL 非法时保持旧 apiService 不变并记录错误。
+     * 返回 true 表示更新成功，false 表示 URL 非法未更新。
+     */
+    private fun updateRetrofit(baseUrl: String): Boolean {
         val url = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-        retrofit = Retrofit.Builder()
-            .baseUrl(url)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        apiService = retrofit?.create(OpenAIApiService::class.java)
-        Log.d("ApiManager", "Base URL updated to: $url")
-    }
-
-    suspend fun setCurrentEndpoint(endpoint: ApiEndpoint) {
-        currentEndpoint = endpoint
-        updateRetrofit(endpoint.url)
+        // 先校验 URL 合法性，避免 Retrofit.Builder().baseUrl() 抛 IllegalArgumentException
+        val parsed = url.toHttpUrlOrNull()
+            ?: run {
+                Log.e("ApiManager", "Invalid base URL, keep previous service: $url")
+                return false
+            }
+        if (parsed.scheme != "http" && parsed.scheme != "https") {
+            Log.e("ApiManager", "Base URL scheme must be http/https: $url")
+            return false
+        }
+        return try {
+            val newRetrofit = Retrofit.Builder()
+                .baseUrl(parsed)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            retrofit = newRetrofit
+            apiService = newRetrofit.create(OpenAIApiService::class.java)
+            Log.d("ApiManager", "Base URL updated to: $url")
+            true
+        } catch (e: Exception) {
+            Log.e("ApiManager", "updateRetrofit failed for url: $url", e)
+            false
+        }
     }
 
     fun getApiService(): OpenAIApiService {
@@ -127,7 +148,11 @@ class ApiManager @Inject constructor(
         if (wasSelected) {
             val endpoints = apiEndpointDao.getAllEndpoints().first()
             if (endpoints.isNotEmpty()) {
-                selectEndpoint(endpoints.first().id)
+                try {
+                    selectEndpoint(endpoints.first().id)
+                } catch (e: Exception) {
+                    Log.e("ApiManager", "deleteEndpoint fallback select failed", e)
+                }
             } else {
                 currentEndpoint = null
                 apiService = null
@@ -151,8 +176,10 @@ class ApiManager @Inject constructor(
 
     fun getApiServiceForEndpoint(url: String, apiKey: String? = null): OpenAIApiService {
         val baseUrl = if (url.endsWith("/")) url else "$url/"
+        val parsed = baseUrl.toHttpUrlOrNull()
+            ?: throw IllegalArgumentException("Invalid endpoint URL: $url")
         val testRetrofit = Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(parsed)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -161,8 +188,11 @@ class ApiManager @Inject constructor(
 
     suspend fun testEndpoint(url: String, apiKey: String): Result<Int> {
         return try {
+            val baseUrl = if (url.endsWith("/")) url else "$url/"
+            val parsed = baseUrl.toHttpUrlOrNull()
+                ?: return Result.failure(IllegalArgumentException("Invalid URL: $url"))
             val testRetrofit = Retrofit.Builder()
-                .baseUrl(if (url.endsWith("/")) url else "$url/")
+                .baseUrl(parsed)
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
