@@ -97,6 +97,22 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.0
+- 🐛 **修复图片生成时发送按钮不显示停止状态** - 同步 `isLoading` 与 `isGeneratingImage` 状态
+  - 根因：`generateImage()` / `editImage()` 只设置 `_isGeneratingImage.value = true`，但 UI 的发送/停止按钮切换依赖 `_isLoading`。图片生成期间发送按钮仍显示为发送图标而非停止图标，用户无法直观感知正在生成
+  - 修复：图片生成开始时同步设置 `_isLoading.value = true`，结束时同步重置为 `false`，发送按钮正确切换为停止状态
+  - 同时在 `generateImage()` / `editImage()` 入口增加 `_isLoading.value` 检查，避免图片生成与聊天流式响应并发
+- ✅ **全功能联调测试验证** - 文生图、图生图、思考模型对话、非思考模型对话
+  - 文生图（`/v1/images/generations`）：点击图片模式按钮 → 输入描述 → 发送 → API 返回 `url` + `b64_json` → APP 正确显示图片 ✅
+  - 图生图（`/v1/images/edits` Multipart）：上传图片 → 自动开启图生图模式 → 输入描述 → 发送 → API 返回 `url` + `b64_json` → APP 正确显示图片 ✅
+  - 思考模型对话（deepseek-v4-flash）：`reasoning_content` 思考过程 + `content` 对话内容分别独立显示 ✅
+  - 非思考模型对话（gpt-5.6-luna）：`content` 流式对话内容正常显示 ✅
+  - 图片下载功能：支持网络 URL 和 base64 data URI 两种格式 ✅
+- 🔗 **跨端点兼容性验证** - 两种 `finish_reason` 格式均被 v2.2.9 修复覆盖
+  - `fengsili.online`：中间 chunk `finish_reason: ""`（空字符串）
+  - `ai.11na.cn`：中间 chunk `finish_reason: null`（JSON null）
+  - `isNullOrEmpty().not()` 判断同时兼容两种格式
+
 ### v2.2.9
 - 🐛 **严重修复：思考模型只显示对话内容第一个 chunk 就中断** - 根治 `finish_reason` 空字符串判断错误
   - 根因：`processStreamResponse()` 中判断 `if (choice.finish_reason != null) break`，但 API 流式响应的每个 chunk 都带 `finish_reason: ""`（空字符串），只有最后一个 chunk 是 `"stop"`。空字符串 `""` 不是 null，导致第一个 content chunk 到达后就 break，后续对话内容全部丢失

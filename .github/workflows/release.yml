@@ -64,10 +64,9 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 严重修复：思考模型只显示对话内容第一个 chunk 就中断（finish_reason 空字符串判断错误）
-            - 🚀 网络超时优化：readTimeout 120s→300s，适配深度思考模型长响应
-            - 🔇 日志级别优化：BODY→BASIC，避免对流式响应的缓冲干扰
-            - ✅ 测试验证 gpt-image-2 文生图 + 图生图功能正常
+            - 🐛 修复图片生成时发送按钮不显示停止状态（同步 isLoading 与 isGeneratingImage）
+            - ✅ 全功能联调测试：文生图、图生图、思考模型对话、非思考模型对话均正常
+            - 🔗 跨端点兼容性验证：两种 finish_reason 格式（空字符串/null）均被覆盖
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -87,10 +86,9 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 严重修复：思考模型只显示对话内容第一个 chunk 就中断（finish_reason 空字符串判断错误）
-            - 🚀 网络超时优化：readTimeout 120s→300s，适配深度思考模型长响应
-            - 🔇 日志级别优化：BODY→BASIC，避免对流式响应的缓冲干扰
-            - ✅ 测试验证 gpt-image-2 文生图 + 图生图功能正常
+            - 🐛 修复图片生成时发送按钮不显示停止状态（同步 isLoading 与 isGeneratingImage）
+            - ✅ 全功能联调测试：文生图、图生图、思考模型对话、非思考模型对话均正常
+            - 🔗 跨端点兼容性验证：两种 finish_reason 格式（空字符串/null）均被覆盖
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
