@@ -219,7 +219,7 @@ class ChatViewModel @Inject constructor(
     }
 
     fun generateImage(prompt: String) {
-        if (prompt.isBlank() || _isGeneratingImage.value) return
+        if (prompt.isBlank() || _isGeneratingImage.value || _isLoading.value) return
 
         _error.value = null
 
@@ -227,6 +227,7 @@ class ChatViewModel @Inject constructor(
             repository.addUserMessage(conversationId, "生成图片: $prompt")
             val assistantIndex = repository.addAssistantMessage(conversationId, "正在生成图片...", isStreaming = true)
             _isGeneratingImage.value = true
+            _isLoading.value = true
 
             withContext(Dispatchers.IO) {
                 try {
@@ -257,20 +258,22 @@ class ChatViewModel @Inject constructor(
                     _error.value = e.message
                 } finally {
                     _isGeneratingImage.value = false
+                    _isLoading.value = false
                 }
             }
         }
     }
 
     fun editImage(imageUri: String, prompt: String) {
-        if (prompt.isBlank() || _isGeneratingImage.value) return
+        if (prompt.isBlank() || _isGeneratingImage.value || _isLoading.value) return
 
         _error.value = null
+        _isGeneratingImage.value = true
+        _isLoading.value = true
 
         viewModelScope.launch {
             repository.addUserMessage(conversationId, "图生图: $prompt")
             val assistantIndex = repository.addAssistantMessage(conversationId, "正在生成图片...", isStreaming = true)
-            _isGeneratingImage.value = true
 
             withContext(Dispatchers.IO) {
                 try {
@@ -302,6 +305,7 @@ class ChatViewModel @Inject constructor(
                     _error.value = e.message
                 } finally {
                     _isGeneratingImage.value = false
+                    _isLoading.value = false
                 }
             }
         }
