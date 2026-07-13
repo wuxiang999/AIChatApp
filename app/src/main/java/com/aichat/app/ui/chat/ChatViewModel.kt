@@ -150,6 +150,13 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 手动刷新当前端点的模型列表（供 UI 刷新按钮调用）
+     */
+    fun refreshModels() {
+        loadModels()
+    }
+
     fun sendMessage(text: String, imageUris: List<String> = emptyList()) {
         if (text.isBlank() && imageUris.isEmpty()) return
         if (_isLoading.value || _isGeneratingImage.value) return
