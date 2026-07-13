@@ -51,8 +51,12 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadEndpoints() {
         viewModelScope.launch {
-            apiManager.getAllEndpoints().collect { endpoints ->
-                _endpoints.value = endpoints
+            try {
+                apiManager.getAllEndpoints().collect { endpoints ->
+                    _endpoints.value = endpoints
+                }
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "loadEndpoints error", e)
             }
         }
     }
@@ -75,15 +79,19 @@ class SettingsViewModel @Inject constructor(
 
     fun testEndpointForId(endpoint: ApiEndpoint) {
         viewModelScope.launch {
-            val current = _endpointTestResults.value.toMutableMap()
-            current.remove(endpoint.id)
-            _endpointTestResults.value = current
+            try {
+                val current = _endpointTestResults.value.toMutableMap()
+                current.remove(endpoint.id)
+                _endpointTestResults.value = current
 
-            val result = repository.testEndpoint(endpoint.url, endpoint.apiKey)
+                val result = repository.testEndpoint(endpoint.url, endpoint.apiKey)
 
-            val updated = _endpointTestResults.value.toMutableMap()
-            updated[endpoint.id] = result
-            _endpointTestResults.value = updated
+                val updated = _endpointTestResults.value.toMutableMap()
+                updated[endpoint.id] = result
+                _endpointTestResults.value = updated
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "testEndpointForId error", e)
+            }
         }
     }
 
@@ -119,14 +127,22 @@ class SettingsViewModel @Inject constructor(
 
     fun addEndpoint(name: String, url: String, apiKey: String) {
         viewModelScope.launch {
-            apiManager.addEndpoint(name, url, apiKey)
+            try {
+                apiManager.addEndpoint(name, url, apiKey)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "addEndpoint error", e)
+            }
             loadCurrentEndpoint()
         }
     }
 
     fun updateEndpoint(id: Long, name: String, url: String, apiKey: String) {
         viewModelScope.launch {
-            apiManager.updateEndpoint(id, name, url, apiKey)
+            try {
+                apiManager.updateEndpoint(id, name, url, apiKey)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "updateEndpoint error", e)
+            }
             loadCurrentEndpoint()
         }
     }
@@ -145,7 +161,11 @@ class SettingsViewModel @Inject constructor(
 
     fun deleteEndpoint(id: Long) {
         viewModelScope.launch {
-            apiManager.deleteEndpoint(id)
+            try {
+                apiManager.deleteEndpoint(id)
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "deleteEndpoint error", e)
+            }
             loadCurrentEndpoint()
         }
     }
@@ -153,8 +173,13 @@ class SettingsViewModel @Inject constructor(
     fun testEndpoint(url: String, apiKey: String) {
         viewModelScope.launch {
             _testResult.value = null
-            val result = repository.testEndpoint(url, apiKey)
-            _testResult.value = result
+            try {
+                val result = repository.testEndpoint(url, apiKey)
+                _testResult.value = result
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "testEndpoint error", e)
+                _testResult.value = Result.failure(e)
+            }
         }
     }
 

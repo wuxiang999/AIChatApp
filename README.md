@@ -97,6 +97,18 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.4
+- 🐛 **彻底修复选择端点/模型时闪退** - 根治 Retrofit 非法 URL 导致的 IllegalArgumentException 崩溃
+  - `ApiManager.updateRetrofit()` 入口处用 `toHttpUrlOrNull()` 校验 URL 合法性，非法 URL（缺少 http/https 前缀、空串等）不再抛异常，保持旧 service 不变
+  - `ApiManager.getApiServiceForEndpoint()` / `testEndpoint()` 同步加入 URL 校验
+  - `ApiManager` 三个可变字段（currentEndpoint/retrofit/apiService）标记 `@Volatile`，修复多线程并发读写竞态
+  - `ApiManager.deleteEndpoint()` 回退选择端点时补充 try-catch
+  - 移除未使用且无异常保护的 `setCurrentEndpoint()` 方法
+- 🛡️ **全链路异常保护加固** - 所有 ViewModel 的协程方法补充 try-catch，杜绝未捕获异常导致闪退
+  - `ChatViewModel`: `selectEndpoint` 的 `loadModels()` 移入 try 成功分支；`setModel`/`clearConversation`/`revokeMessage` 补充异常保护
+  - `SettingsViewModel`: `addEndpoint`/`updateEndpoint`/`deleteEndpoint`/`testEndpoint`/`testEndpointForId`/`loadEndpoints` 补充异常保护
+  - `ConversationsViewModel`: `loadConversations`/`deleteConversation`/`updateConversationTitle` 补充异常保护
+
 ### v2.2.3
 - 🐛 **闪退修复** - 修复进入聊天界面时闪退问题
   - `ChatViewModel` 的 `initializeAgents` / `loadMessages` / `loadConversationInfo` / `loadEndpoints` 四个 init 协程补充 try-catch 异常保护，避免 DB 或 Flow 异常作为未捕获异常导致崩溃
