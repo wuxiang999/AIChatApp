@@ -97,6 +97,12 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.7
+- 🐛 **修复点击当前模型不显示模型列表** - 根治 readOnly TextField 点击事件被拦截问题
+  - 根因：ModelPicker 触发器使用了 `readOnly = true` 的 `OutlinedTextField` + `Modifier.clickable`。readOnly TextField 的内部 `pointerInput` 会拦截点击事件（用于获取焦点），导致外部 `Modifier.clickable` 收不到点击，`onExpandedChange(true)` 永远不会被调用，ModalBottomSheet 无法展开
+  - 修复：用 `Surface` + `Row` + `Text` + `Icon` 重写触发器，整个区域可点击，避免 TextField 的点击事件拦截
+- ✅ 排查确认 EndpointPicker 和 ImageOptionsRow 点击正常（使用标准 `ExposedDropdownMenuBox` + `menuAnchor()`，无同类问题）
+
 ### v2.2.6
 - ✨ **模型选择器增强** - 完善当前端点模型选择与搜索功能
   - 移除 `availableModels.isNotEmpty()` 显示条件，模型选择器始终显示，确保随时可选择模型
