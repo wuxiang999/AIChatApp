@@ -97,6 +97,13 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.2.8
+- ✅ **测试验证 DeepSeek 风格 reasoning_content 思考内容显示** - 全链路联调确认正常
+  - 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`
+  - 验证 API 返回流式 SSE：先输出 `delta.reasoning_content`（思考过程），再输出 `delta.content`（最终回答）
+  - 全链路打通：`StreamDelta` 解析 `reasoning_content`/`thinking_content`/`reasoning`/`thought` 多字段 → `ChatViewModel.processStreamResponse()` 累积 `fullReasoning` → `MessageDao.updateMessageReasoning()` 持久化 → `MessageBubble` 渲染 `ReasoningCard` 可展开收起的「思考过程」卡片
+  - 对话内容与思考内容分别独立显示，互不干扰，UI 体验符合预期
+
 ### v2.2.7
 - 🐛 **修复点击当前模型不显示模型列表** - 根治 readOnly TextField 点击事件被拦截问题
   - 根因：ModelPicker 触发器使用了 `readOnly = true` 的 `OutlinedTextField` + `Modifier.clickable`。readOnly TextField 的内部 `pointerInput` 会拦截点击事件（用于获取焦点），导致外部 `Modifier.clickable` 收不到点击，`onExpandedChange(true)` 永远不会被调用，ModalBottomSheet 无法展开

@@ -64,10 +64,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复点击当前模型不显示模型列表问题（readOnly TextField 点击事件被拦截）
-            - ✨ 用 Surface + Row 重写模型选择触发器，点击整个区域均可展开列表
-            - ✅ 排查确认端点选择器和图片选项点击正常，无同类问题
-            - ✨ v2.2.6: 模型选择器始终显示，支持搜索和刷新
+            - ✅ 测试验证 DeepSeek 风格 reasoning_content 思考内容显示，全链路联调确认正常
+            - 🧪 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`
+            - 🔗 全链路打通：流式 SSE 解析 reasoning_content → 累积保存 → MessageBubble 渲染「思考过程」卡片
+            - 💬 对话内容与思考内容分别独立显示，可展开收起
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -87,10 +87,10 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复点击当前模型不显示模型列表问题（readOnly TextField 点击事件被拦截）
-            - ✨ 用 Surface + Row 重写模型选择触发器，点击整个区域均可展开列表
-            - ✅ 排查确认端点选择器和图片选项点击正常，无同类问题
-            - ✨ v2.2.6: 模型选择器始终显示，支持搜索和刷新
+            - ✅ 测试验证 DeepSeek 风格 reasoning_content 思考内容显示，全链路联调确认正常
+            - 🧪 测试端点：`https://api.fengsili.online/v1`，模型：`deepseek-v4-flash`
+            - 🔗 全链路打通：流式 SSE 解析 reasoning_content → 累积保存 → MessageBubble 渲染「思考过程」卡片
+            - 💬 对话内容与思考内容分别独立显示，可展开收起
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
