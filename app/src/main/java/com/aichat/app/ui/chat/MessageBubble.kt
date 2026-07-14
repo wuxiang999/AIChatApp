@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.MediaStore
 import android.util.Base64
 import android.widget.Toast
-import androidx.compose.foundation.animateScrollTo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.rememberScrollState
