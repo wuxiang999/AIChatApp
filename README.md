@@ -97,6 +97,16 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.6
+- 🐛 **修复设置/智能体页面顶部双重 TopAppBar 导致的留白** - 根治嵌套 Scaffold 各自渲染 TopAppBar 的问题
+  - 根因：外层 `AIChatApp` 的 `Scaffold` 已有 `TopAppBar` 显示「设置」/「智能体」标题（含菜单按钮），但内层 `SettingsScreen` / `AgentsScreen` 又各自渲染了一个 `TopAppBar`，显示相同标题 + 副标题。两个 TopAppBar 堆叠，看起来像标题下方有一大块空白。v2.3.5 的 `contentWindowInsets=0` 对此无效，因为那里实际是第二个标题栏
+  - 修复：将副标题（「管理 API 端点与可用模型」/「选择一个智能体开始对话」）合并到外层 `AIChatApp` 的 TopAppBar 标题 Column 中，移除 `SettingsScreen` / `AgentsScreen` 内层的 `topBar` 及 `nestedScroll`/`scrollBehavior`
+  - 效果：设置/智能体页面只剩单一标题栏，无双重头部、无多余留白
+- 🎨 **聊天界面 API 端点与模型选择按钮统一尺寸** - 视觉一致性优化
+  - 根因：`EndpointPicker` 使用 `ExposedDropdownMenuBox` + `OutlinedTextField`（带 label，高度较大），`ModelPicker` 使用 `Surface` + `Row` + `Column`（label 与值纵向排列，高度较小），两者结构不同导致尺寸不一致
+  - 修复：将 `EndpointPicker` 触发器重写为与 `ModelPicker` 完全一致的 `Surface` + `Row` + `Column(label, value)` + `KeyboardArrowDown` 图标结构，相同的 padding(12/6)、圆角(12dp)、配色，下拉改用 `DropdownMenu`
+  - 效果：API 端点按钮与模型选择按钮高度、样式完全一致
+
 ### v2.3.5
 - 🐛 **修复 TopAppBar 与内容之间大片留白** - 根治嵌套 Scaffold 双重 windowInsets padding 问题
   - 根因：外层 `AIChatApp` 的 `Scaffold` 已有 `TopAppBar` 消费了状态栏 inset，但内层各页面（ChatScreen / SettingsScreen / AgentsScreen / ImageGenScreen）的 `Scaffold` 默认 `contentWindowInsets = ScaffoldDefaults.contentWindowInsets`（系统栏）会再次把状态栏高度作为 padding 加到内容顶部，导致标题「月下AI」与下方人设指示条之间出现一大块空白，设置/智能体/图片生成页面同样存在

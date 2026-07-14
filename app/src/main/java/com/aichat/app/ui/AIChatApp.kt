@@ -171,15 +171,29 @@ fun AIChatApp() {
                 topBar = {
                     TopAppBar(
                         title = {
-                            Text(
-                                text = when (currentRoute) {
-                                    Screen.Settings.route -> "设置"
-                                    Screen.Agents.route -> "智能体"
-                                    else -> "月下AI"
-                                },
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column {
+                                Text(
+                                    text = when (currentRoute) {
+                                        Screen.Settings.route -> "设置"
+                                        Screen.Agents.route -> "智能体"
+                                        else -> "月下AI"
+                                    },
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                val subtitle = when (currentRoute) {
+                                    Screen.Settings.route -> "管理 API 端点与可用模型"
+                                    Screen.Agents.route -> "选择一个智能体开始对话"
+                                    else -> null
+                                }
+                                subtitle?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.background,
