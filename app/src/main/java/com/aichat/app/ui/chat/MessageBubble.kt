@@ -5,8 +5,11 @@ import android.net.Uri
 import android.provider.MediaStore
 import android.util.Base64
 import android.widget.Toast
+import androidx.compose.foundation.animateScrollTo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,6 +74,14 @@ fun MessageBubble(
     var showMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val replyScrollState = rememberScrollState()
+
+    // 流式回复时：回复内容变化即自动滚动到底部，显示最新内容
+    LaunchedEffect(message.content) {
+        if (message.isStreaming && !message.isRevoked) {
+            replyScrollState.animateScrollTo(replyScrollState.maxValue)
+        }
+    }
 
     fun downloadImage(url: String) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -135,7 +147,8 @@ fun MessageBubble(
                 ReasoningCard(
                     content = message.reasoningContent,
                     expanded = showReasoning,
-                    onToggle = { showReasoning = !showReasoning }
+                    onToggle = { showReasoning = !showReasoning },
+                    isStreaming = message.isStreaming
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
@@ -172,7 +185,10 @@ fun MessageBubble(
                             } else {
                                 MaterialTheme.colorScheme.onSurface
                             },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(max = 320.dp)
+                                .verticalScroll(replyScrollState)
                         )
                         if (!message.isRevoked && message.isStreaming) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -327,8 +343,16 @@ private fun AvatarBox(label: String, isUser: Boolean) {
 private fun ReasoningCard(
     content: String,
     expanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    isStreaming: Boolean = false
 ) {
+    val reasoningScrollState = rememberScrollState()
+    // 流式思考时：思考内容变化即自动滚动到底部，显示最新内容
+    LaunchedEffect(content, expanded) {
+        if (expanded && isStreaming) {
+            reasoningScrollState.animateScrollTo(reasoningScrollState.maxValue)
+        }
+    }
     Card(
         shape = RoundedCornerShape(
             topStart = 18.dp,
@@ -377,7 +401,11 @@ private fun ReasoningCard(
                 Text(
                     text = content,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 200.dp)
+                        .verticalScroll(reasoningScrollState)
                 )
             }
         }
