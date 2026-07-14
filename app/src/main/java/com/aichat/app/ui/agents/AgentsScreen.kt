@@ -107,12 +107,15 @@ fun AgentsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(32.dp),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(top = 80.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(88.dp)
+                                .size(64.dp)
                                 .clip(CircleShape)
                                 .background(
                                     Brush.linearGradient(
@@ -127,11 +130,11 @@ fun AgentsScreen(
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier.size(32.dp),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "暂无智能体",
                             style = MaterialTheme.typography.titleMedium,

@@ -161,13 +161,16 @@ private fun EmptyConversationState() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 100.dp),
-        contentAlignment = Alignment.Center
+            .padding(bottom = 60.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 80.dp)
+        ) {
             Box(
                 modifier = Modifier
-                    .size(96.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -182,21 +185,21 @@ private fun EmptyConversationState() {
                 Icon(
                     imageVector = Icons.Filled.Chat,
                     contentDescription = null,
-                    modifier = Modifier.size(46.dp),
+                    modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
                 text = "还没有对话",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "点击右上角 + 开始新的对话",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
