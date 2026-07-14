@@ -97,6 +97,12 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.5
+- 🐛 **修复 TopAppBar 与内容之间大片留白** - 根治嵌套 Scaffold 双重 windowInsets padding 问题
+  - 根因：外层 `AIChatApp` 的 `Scaffold` 已有 `TopAppBar` 消费了状态栏 inset，但内层各页面（ChatScreen / SettingsScreen / AgentsScreen / ImageGenScreen）的 `Scaffold` 默认 `contentWindowInsets = ScaffoldDefaults.contentWindowInsets`（系统栏）会再次把状态栏高度作为 padding 加到内容顶部，导致标题「月下AI」与下方人设指示条之间出现一大块空白，设置/智能体/图片生成页面同样存在
+  - 修复：为四个内层 `Scaffold` 显式设置 `contentWindowInsets = WindowInsets(0, 0, 0, 0)`，不再重复应用系统栏 inset，消除双重 padding 产生的空白
+  - 效果：所有页面 TopAppBar 紧贴内容，无多余空白
+
 ### v2.3.4
 - 🐛 **修复 AI 回复时屏幕不自动滚动** - 流式响应实时跟随到底部
   - 根因：原 `LaunchedEffect(messages.size, isLoading)` 只在消息数量变化时触发滚动，但流式响应时消息数量不变（只是最后一条消息的 content 不断更新），导致 AI 回复时屏幕不滚动，用户看不到实时加载内容
