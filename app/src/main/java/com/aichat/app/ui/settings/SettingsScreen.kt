@@ -75,7 +75,6 @@ fun SettingsScreen(
     val endpointTestResults by viewModel.endpointTestResults.collectAsStateWithLifecycle()
     val endpointModels by viewModel.endpointModels.collectAsStateWithLifecycle()
     val loadingEndpoints by viewModel.loadingEndpoints.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<ApiEndpoint?>(null) }
@@ -84,30 +83,7 @@ fun SettingsScreen(
     var newEndpointKey by remember { mutableStateOf("") }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "设置",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "管理 API 端点与可用模型",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {

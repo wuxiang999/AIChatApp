@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -659,26 +660,51 @@ private fun EndpointPicker(
     onExpandedChange: (Boolean) -> Unit,
     onEndpointChange: (Long) -> Unit
 ) {
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        OutlinedTextField(
-            value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("API端点", style = MaterialTheme.typography.labelSmall) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+    val currentName = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点"
+    Box {
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(),
+                .clickable { onExpandedChange(!expanded) },
             shape = RoundedCornerShape(12.dp),
-            singleLine = true,
-            colors = menuTextFieldColors(),
-            textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
-        )
-        ExposedDropdownMenu(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "API端点",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (expanded) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = currentName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "展开端点列表",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        DropdownMenu(
             expanded = expanded,
             onDismissRequest = { onExpandedChange(false) }
         ) {

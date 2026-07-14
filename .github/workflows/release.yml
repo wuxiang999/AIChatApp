@@ -64,9 +64,8 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复 TopAppBar 与内容之间大片留白（嵌套 Scaffold 双重 windowInsets padding）
-            - 聊天界面「月下AI」标题与人设指示条之间不再有大块空白
-            - 设置 / 智能体 / 图片生成页面同样修复
+            - 🐛 修复设置/智能体页面顶部双重 TopAppBar 导致的留白（合并副标题到外层标题，移除内层 topBar）
+            - 🎨 聊天界面 API 端点与模型选择按钮统一尺寸（EndpointPicker 重写为与 ModelPicker 一致的 Surface 结构）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -86,9 +85,8 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复 TopAppBar 与内容之间大片留白（嵌套 Scaffold 双重 windowInsets padding）
-            - 聊天界面「月下AI」标题与人设指示条之间不再有大块空白
-            - 设置 / 智能体 / 图片生成页面同样修复
+            - 🐛 修复设置/智能体页面顶部双重 TopAppBar 导致的留白（合并副标题到外层标题，移除内层 topBar）
+            - 🎨 聊天界面 API 端点与模型选择按钮统一尺寸（EndpointPicker 重写为与 ModelPicker 一致的 Surface 结构）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
