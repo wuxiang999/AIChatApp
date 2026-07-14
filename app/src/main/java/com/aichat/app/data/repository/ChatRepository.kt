@@ -18,6 +18,7 @@ import com.aichat.app.data.remote.ImageGenerationRequest
 import com.aichat.app.data.remote.ImageGenerationResponse
 import com.aichat.app.data.remote.ImageUrlData
 import com.aichat.app.data.remote.StreamResponse
+import com.aichat.app.data.terminal.TerminalLogBuffer
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -41,10 +42,18 @@ class ChatRepository @Inject constructor(
     private val messageDao: MessageDao,
     private val agentDao: AgentDao,
     private val apiManager: ApiManager,
+    private val memoryRepository: MemoryRepository,
+    private val skillsRepository: SkillsRepository,
+    private val mcpRepository: McpRepository,
+    private val terminal: TerminalLogBuffer,
     @ApplicationContext private val context: Context
 ) {
     private val gson = Gson()
     private val maxHistoryMessages = 50
+
+    companion object {
+        private const val TAG = "Chat"
+    }
 
     private val presetAgents = listOf(
         Agent(
@@ -284,6 +293,7 @@ class ChatRepository @Inject constructor(
         val chatMessages = buildChatMessages(allMessages)
 
         Log.d("ChatRepository", "Sending ${chatMessages.size} messages to API, model: $model")
+        terminal.info(TAG, "发送请求 -> 模型=$model, 消息数=${chatMessages.size}")
 
         val request = ChatRequest(
             model = model,
@@ -306,6 +316,50 @@ class ChatRepository @Inject constructor(
         }
     }
 
+    private suspend fun buildContextBlock(): String {
+        val parts = mutableListOf<String>()
+
+        // 记忆系统：长期记忆
+        val memories = memoryRepository.getAllMemoriesOnce()
+        if (memories.isNotEmpty()) {
+            parts += buildString {
+                append("【长期记忆】以下是关于用户的长期记忆，请在回复时参考：\n")
+                memories.forEach { append("- ").append(it.content).append("\n") }
+            }
+            terminal.info(TAG, "注入记忆 ${memories.size} 条")
+        }
+
+        // 技能系统：可用技能清单
+        val skills = skillsRepository.getEnabledSkills()
+        if (skills.isNotEmpty()) {
+            parts += buildString {
+                append("【可用技能】以下是可调用的技能，请根据用户意图选用并展开对应提示词：\n")
+                skills.forEach { s ->
+                    append("- ").append(s.name).append("：").append(s.description)
+                    if (s.promptTemplate.isNotBlank()) {
+                        append("（模板：").append(s.promptTemplate.take(80)).append("…）")
+                    }
+                    append("\n")
+                }
+            }
+            terminal.info(TAG, "注入技能 ${skills.size} 个")
+        }
+
+        // MCP 系统：外部资源
+        val servers = mcpRepository.getEnabledServers()
+        if (servers.isNotEmpty()) {
+            parts += buildString {
+                append("【MCP 外部资源】以下外部工具/数据源已接入，可按需调用：\n")
+                servers.forEach { srv ->
+                    append("- ").append(srv.name).append("（").append(srv.url).append("）\n")
+                }
+            }
+            terminal.info(TAG, "注入 MCP 服务器 ${servers.size} 个")
+        }
+
+        return parts.joinToString("\n").trim()
+    }
+
     private suspend fun buildChatMessages(messages: List<Message>): List<ChatMessage> {
         val result = mutableListOf<ChatMessage>()
 
@@ -315,6 +369,12 @@ class ChatRepository @Inject constructor(
             Log.d("ChatRepository", "Agent system prompt applied: ${selectedAgent.name} (id=${selectedAgent.id})")
         } else {
             Log.d("ChatRepository", "No agent selected or no messages, system prompt skipped")
+        }
+
+        // 注入记忆 / 技能 / MCP 外部资源上下文
+        val contextBlock = buildContextBlock()
+        if (contextBlock.isNotBlank()) {
+            result.add(ChatMessage(role = "system", content = contextBlock))
         }
 
         val limitedMessages = if (messages.size > maxHistoryMessages) {

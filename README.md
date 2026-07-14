@@ -97,6 +97,15 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.4.0
+- 🚀 **新增四大系统：终端 / 技能 / MCP / 记忆** —— 让 AI 客户端具备工具与记忆能力
+  - 🖥️ **终端系统**：应用内终端页面，实时展示对话请求、上下文注入、MCP 连接等运行日志（有界 500 条环形缓冲，自动滚动到底部，按级别着色，可一键清空）。通过 `TerminalLogBuffer` 单例集中采集，`ChatRepository` 与 `McpRepository` 均写入
+  - 🧠 **记忆系统**：跨会话长期记忆。在「记忆」页面新增/删除记忆条目（含分类：general/fact/preference/identity），每轮对话自动注入为 system 上下文（【长期记忆】），让 AI 记住用户信息
+  - ⚡ **技能系统**：可管理的技能库。在「技能」页面新增技能（名称/描述/提示词模板，支持 `{{input}}` 占位符），启用后注入为 system 上下文（【可用技能】），AI 可按用户意图选用并展开
+  - 🔌 **MCP 系统**：Model Context Protocol 服务器配置。在「MCP」页面新增/删除/启用服务器，支持「测试连接」连通性检测（结果写入终端），启用的服务器注入为 system 上下文（【MCP 外部资源】）
+  - 🧩 **架构**：新增 3 个 Room 实体（skills/mcp_servers/memories）+ DAO + Repository + ViewModel + Screen，数据库升级至 v5（fallbackToDestructiveMigration），抽屉菜单新增 4 个入口（记忆/技能/MCP/终端），TopAppBar 标题与副标题同步适配
+  - ⚠️ 注意：数据库版本升级，历史会话将清空重建
+
 ### v2.3.7
 - ✨ **AI 回复的思考内容与回复内容支持滚动并自动显示最新内容** - 流式响应实时跟随
   - 背景：此前思考内容（ReasoningCard）与回复内容（Card 内 Text）均使用普通 `Text`，内容随流式输出无限增长，单条消息会撑满甚至超出屏幕，思考阶段最新内容不易查看

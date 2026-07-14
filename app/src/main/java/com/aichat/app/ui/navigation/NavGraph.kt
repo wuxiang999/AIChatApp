@@ -20,7 +20,11 @@ import com.aichat.app.ui.chat.ChatScreen
 import com.aichat.app.ui.chat.ChatViewModel
 import com.aichat.app.ui.conversations.ConversationsScreen
 import com.aichat.app.ui.conversations.ConversationsViewModel
+import com.aichat.app.ui.mcp.McpScreen
+import com.aichat.app.ui.memory.MemoryScreen
 import com.aichat.app.ui.settings.SettingsScreen
+import com.aichat.app.ui.skills.SkillsScreen
+import com.aichat.app.ui.terminal.TerminalScreen
 import kotlinx.coroutines.delay
 
 sealed class Screen(val route: String) {
@@ -31,6 +35,10 @@ sealed class Screen(val route: String) {
     object NewChat : Screen("new_chat")
     object Settings : Screen("settings")
     object Agents : Screen("agents")
+    object Terminal : Screen("terminal")
+    object Skills : Screen("skills")
+    object Mcp : Screen("mcp")
+    object Memory : Screen("memory")
 }
 
 @Composable
@@ -175,6 +183,26 @@ fun AIChatNavHost(
             AgentsScreen(
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        composable(Screen.Terminal.route) {
+            onRouteChange(Screen.Terminal.route)
+            TerminalScreen()
+        }
+
+        composable(Screen.Skills.route) {
+            onRouteChange(Screen.Skills.route)
+            SkillsScreen()
+        }
+
+        composable(Screen.Mcp.route) {
+            onRouteChange(Screen.Mcp.route)
+            McpScreen()
+        }
+
+        composable(Screen.Memory.route) {
+            onRouteChange(Screen.Memory.route)
+            MemoryScreen()
         }
     }
 }

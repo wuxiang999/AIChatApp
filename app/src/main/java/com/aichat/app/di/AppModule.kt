@@ -6,7 +6,10 @@ import com.aichat.app.data.local.AgentDao
 import com.aichat.app.data.local.ApiEndpointDao
 import com.aichat.app.data.local.AppDatabase
 import com.aichat.app.data.local.ConversationDao
+import com.aichat.app.data.local.McpServerDao
+import com.aichat.app.data.local.MemoryDao
 import com.aichat.app.data.local.MessageDao
+import com.aichat.app.data.local.SkillDao
 import com.aichat.app.data.remote.ApiManager
 import dagger.Module
 import dagger.Provides
@@ -51,5 +54,23 @@ object AppModule {
     @Singleton
     fun provideAgentDao(database: AppDatabase): AgentDao {
         return database.agentDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSkillDao(database: AppDatabase): SkillDao {
+        return database.skillDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMcpServerDao(database: AppDatabase): McpServerDao {
+        return database.mcpServerDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMemoryDao(database: AppDatabase): MemoryDao {
+        return database.memoryDao()
     }
 }

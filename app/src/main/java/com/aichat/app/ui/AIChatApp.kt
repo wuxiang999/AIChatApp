@@ -22,6 +22,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -76,6 +80,10 @@ fun AIChatApp() {
         listOf(
             DrawerEntry(Screen.ChatList.route, "对话列表", "查看与管理历史会话", Icons.Filled.Chat),
             DrawerEntry(Screen.Agents.route, "智能体", "选择预设角色或自定义", Icons.Default.Person),
+            DrawerEntry(Screen.Memory.route, "记忆", "长期记忆，让AI记住你", Icons.Default.Psychology),
+            DrawerEntry(Screen.Skills.route, "技能", "管理与注入可用技能", Icons.Default.AutoAwesome),
+            DrawerEntry(Screen.Mcp.route, "MCP", "外部工具与数据源", Icons.Default.Hub),
+            DrawerEntry(Screen.Terminal.route, "终端", "实时日志与连接观测", Icons.Default.Terminal),
             DrawerEntry(Screen.Settings.route, "设置", "API 端点、模型与偏好", Icons.Default.Settings)
         )
     }
@@ -176,6 +184,10 @@ fun AIChatApp() {
                                     text = when (currentRoute) {
                                         Screen.Settings.route -> "设置"
                                         Screen.Agents.route -> "智能体"
+                                        Screen.Memory.route -> "记忆"
+                                        Screen.Skills.route -> "技能"
+                                        Screen.Mcp.route -> "MCP"
+                                        Screen.Terminal.route -> "终端"
                                         else -> "月下AI"
                                     },
                                     style = MaterialTheme.typography.headlineSmall,
@@ -184,6 +196,10 @@ fun AIChatApp() {
                                 val subtitle = when (currentRoute) {
                                     Screen.Settings.route -> "管理 API 端点与可用模型"
                                     Screen.Agents.route -> "选择一个智能体开始对话"
+                                    Screen.Memory.route -> "长期记忆，让AI记住你"
+                                    Screen.Skills.route -> "管理与注入可用技能"
+                                    Screen.Mcp.route -> "外部工具与数据源"
+                                    Screen.Terminal.route -> "实时日志与连接观测"
                                     else -> null
                                 }
                                 subtitle?.let {
