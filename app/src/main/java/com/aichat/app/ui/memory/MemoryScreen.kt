@@ -145,6 +145,7 @@ private fun MemoryCard(memory: Memory, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddMemoryDialog(onDismiss: () -> Unit, onConfirm: (String, String) -> Unit) {
     var content by remember { mutableStateOf("") }
