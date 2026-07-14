@@ -68,6 +68,9 @@ class ChatViewModel @Inject constructor(
     private val _currentEndpointId = MutableStateFlow<Long?>(null)
     val currentEndpointId: StateFlow<Long?> = _currentEndpointId.asStateFlow()
 
+    private val _currentAgentName = MutableStateFlow<String?>(null)
+    val currentAgentName: StateFlow<String?> = _currentAgentName.asStateFlow()
+
     private var currentStreamJob: Job? = null
     private var streamCall: Call<ResponseBody>? = null
 
@@ -77,12 +80,14 @@ class ChatViewModel @Inject constructor(
         loadConversationInfo()
         loadModels()
         loadEndpoints()
+        loadCurrentAgent()
     }
 
     private fun initializeAgents() {
         viewModelScope.launch {
             try {
                 repository.initializeAgents()
+                loadCurrentAgent()
             } catch (e: Exception) {
                 Log.e("ChatViewModel", "initializeAgents error", e)
             }
@@ -155,6 +160,29 @@ class ChatViewModel @Inject constructor(
      */
     fun refreshModels() {
         loadModels()
+    }
+
+    /**
+     * 加载当前选中的智能体名称（供 UI 显示）
+     * 持续观察数据库变化，用户在 AgentsScreen 切换智能体后自动更新
+     */
+    private fun loadCurrentAgent() {
+        viewModelScope.launch {
+            try {
+                repository.getAllAgents().collect { agentList ->
+                    _currentAgentName.value = agentList.find { it.isSelected }?.name
+                }
+            } catch (e: Exception) {
+                Log.e("ChatViewModel", "loadCurrentAgent error", e)
+            }
+        }
+    }
+
+    /**
+     * 刷新当前智能体状态（从 AgentsScreen 返回后调用）
+     */
+    fun refreshAgent() {
+        loadCurrentAgent()
     }
 
     fun sendMessage(text: String, imageUris: List<String> = emptyList()) {
