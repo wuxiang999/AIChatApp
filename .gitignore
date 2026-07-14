@@ -52,8 +52,10 @@ captures/
 .idea/deploymentTargetDropDown.xml
 
 # Keystore files
-#*.jks
-#*.keystore
+*.jks
+*.keystore
+keystore.properties
+GITHUB_SECRETS_SETUP.md
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild

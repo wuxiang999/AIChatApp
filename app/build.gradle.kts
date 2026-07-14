@@ -14,8 +14,8 @@ android {
         applicationId = "com.aichat.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 34
-        versionName = "2.4.0"
+        versionCode = 35
+        versionName = "2.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -23,12 +23,24 @@ android {
         }
     }
 
+    // 签名配置：从 gitignored 的 keystore.properties 读取，缺失时回退到 debug 签名
+    // CI 通过 GitHub Secrets 还原 keystore.properties（见 .github/workflows/release.yml）
+    val keystorePropsFile = rootProject.file("keystore.properties")
+    val keystoreProps = java.util.Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(keystorePropsFile.inputStream())
+    }
+    val hasReleaseKeystore = keystorePropsFile.exists() &&
+        keystoreProps.getProperty("storeFile")?.let { file(it).exists() } == true
+
     signingConfigs {
-        create("release") {
-            storeFile = file("release.keystore")
-            storePassword = "***REMOVED***"
-            keyAlias = "yuexia_ai"
-            keyPassword = "***REMOVED***"
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
         }
     }
 
@@ -36,7 +48,8 @@ android {
         release {
             isMinifyEnabled = false
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseKeystore) signingConfigs.getByName("release")
+                            else signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -35,6 +35,25 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Restore release keystore
+        env:
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE" ]; then
+            echo "$RELEASE_KEYSTORE" | base64 -d > app/release.keystore
+            {
+              echo "storeFile=release.keystore"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEYSTORE_PASSWORD"
+            } > keystore.properties
+            echo "Release keystore restored."
+          else
+            echo "No release keystore secret set — build will use debug signing."
+          fi
+
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
 

@@ -97,6 +97,19 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.4.1
+- 🔒 **安全修复：移除泄露的签名密钥与明文密码**
+  - 根因：`app/build.gradle.kts` 明文写死了 `storePassword/keyPassword`，且 `app/release.keystore` 文件本身被提交进公开仓库，`.gitignore` 中 keystore 规则被注释。任何人 clone 后即可用相同签名伪造 APK 并覆盖安装官方应用
+  - 修复：
+    - 作废旧 keystore，生成全新 keystore（PKCS12，RSA-2048，10000 天有效期，随机强密码）
+    - `build.gradle.kts` 改为从 gitignored 的 `keystore.properties` 读取签名配置，文件缺失时回退到 debug 签名（保证本地/无密钥环境也能编译）
+    - `.gitignore` 启用 `*.jks`/`*.keystore`/`keystore.properties` 规则
+    - `app/release.keystore` 从仓库移除（`git rm`）
+    - CI（`release.yml`）从 GitHub Secrets 还原 keystore + 写入 `keystore.properties`：需配置 `RELEASE_KEYSTORE`（base64）、`KEYSTORE_PASSWORD`、`KEY_ALIAS` 三个 Secret
+    - 用 `git filter-repo` 清理全历史中的 `app/release.keystore` 文件与明文密码，force-push 所有分支与 32 个 tag
+  - ⚠️ 签名证书已更换：历史版本用户需卸载旧版后安装新版（签名不兼容，无法覆盖升级）。这是密钥泄露后的必要代价
+  - ⚠️ 维护者须在仓库 Settings → Secrets and variables → Actions 添加上述 3 个 Secret 后，后续版本才能产出正式签名 APK（详见本地 `GITHUB_SECRETS_SETUP.md`）
+
 ### v2.4.0
 - 🚀 **新增四大系统：终端 / 技能 / MCP / 记忆** —— 让 AI 客户端具备工具与记忆能力
   - 🖥️ **终端系统**：应用内终端页面，实时展示对话请求、上下文注入、MCP 连接等运行日志（有界 500 条环形缓冲，自动滚动到底部，按级别着色，可一键清空）。通过 `TerminalLogBuffer` 单例集中采集，`ChatRepository` 与 `McpRepository` 均写入
