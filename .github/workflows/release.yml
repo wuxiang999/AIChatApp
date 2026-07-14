@@ -64,8 +64,7 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复设置/智能体页面顶部双重 TopAppBar 导致的留白（合并副标题到外层标题，移除内层 topBar）
-            - 🎨 聊天界面 API 端点与模型选择按钮统一尺寸（EndpointPicker 重写为与 ModelPicker 一致的 Surface 结构）
+            - ✨ AI 回复的思考内容与回复内容支持滚动并自动显示最新内容（限定高度 + 流式时自动滚动到底部）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
@@ -85,8 +84,7 @@ jobs:
             ## 月下AI v${{ env.VERSION }}
 
             ### 更新内容
-            - 🐛 修复设置/智能体页面顶部双重 TopAppBar 导致的留白（合并副标题到外层标题，移除内层 topBar）
-            - 🎨 聊天界面 API 端点与模型选择按钮统一尺寸（EndpointPicker 重写为与 ModelPicker 一致的 Surface 结构）
+            - ✨ AI 回复的思考内容与回复内容支持滚动并自动显示最新内容（限定高度 + 流式时自动滚动到底部）
 
             ### 安装说明
             下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。

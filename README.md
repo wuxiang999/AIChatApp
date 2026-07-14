@@ -97,6 +97,15 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.7
+- ✨ **AI 回复的思考内容与回复内容支持滚动并自动显示最新内容** - 流式响应实时跟随
+  - 背景：此前思考内容（ReasoningCard）与回复内容（Card 内 Text）均使用普通 `Text`，内容随流式输出无限增长，单条消息会撑满甚至超出屏幕，思考阶段最新内容不易查看
+  - 修复：
+    - **思考内容**：`ReasoningCard` 内容 `Text` 增加 `heightIn(max = 200.dp)` + `verticalScroll`，限制最大高度并可内部滚动；新增 `isStreaming` 参数，`LaunchedEffect(content, expanded)` 在展开且流式输出时调用 `animateScrollTo(maxValue)` 自动滚动到底部，实时显示最新思考内容
+    - **回复内容**：回复 `Text` 增加 `heightIn(max = 320.dp)` + `verticalScroll`，`LaunchedEffect(message.content)` 在 `isStreaming` 时自动滚动到底部，实时显示最新回复内容
+    - 非流式（历史消息）时不自动滚动，默认从顶部开始阅读，符合阅读习惯
+  - 效果：单条超长消息不再撑满屏幕，思考与回复各自在限定高度内滚动并自动跟随到最新内容
+
 ### v2.3.6
 - 🐛 **修复设置/智能体页面顶部双重 TopAppBar 导致的留白** - 根治嵌套 Scaffold 各自渲染 TopAppBar 的问题
   - 根因：外层 `AIChatApp` 的 `Scaffold` 已有 `TopAppBar` 显示「设置」/「智能体」标题（含菜单按钮），但内层 `SettingsScreen` / `AgentsScreen` 又各自渲染了一个 `TopAppBar`，显示相同标题 + 副标题。两个 TopAppBar 堆叠，看起来像标题下方有一大块空白。v2.3.5 的 `contentWindowInsets=0` 对此无效，因为那里实际是第二个标题栏
