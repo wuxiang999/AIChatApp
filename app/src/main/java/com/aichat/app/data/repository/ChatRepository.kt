@@ -312,6 +312,9 @@ class ChatRepository @Inject constructor(
         val selectedAgent = getSelectedAgent()
         if (selectedAgent != null && messages.isNotEmpty()) {
             result.add(ChatMessage(role = "system", content = selectedAgent.systemPrompt))
+            Log.d("ChatRepository", "Agent system prompt applied: ${selectedAgent.name} (id=${selectedAgent.id})")
+        } else {
+            Log.d("ChatRepository", "No agent selected or no messages, system prompt skipped")
         }
 
         val limitedMessages = if (messages.size > maxHistoryMessages) {

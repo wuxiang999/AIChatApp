@@ -83,6 +83,7 @@ fun AIChatNavHost(
             val imageSize by viewModel.imageSize.collectAsStateWithLifecycle()
             val imageModel by viewModel.imageModel.collectAsStateWithLifecycle()
             val isImageEditMode by viewModel.isImageEditMode.collectAsStateWithLifecycle()
+            val currentAgentName by viewModel.currentAgentName.collectAsStateWithLifecycle()
 
             ChatScreen(
                 messages = messages,
@@ -96,6 +97,7 @@ fun AIChatNavHost(
                 imageSize = imageSize,
                 imageModel = imageModel,
                 isImageEditMode = isImageEditMode,
+                currentAgentName = currentAgentName,
                 onSendMessage = { message, images ->
                     viewModel.sendMessage(message, images)
                 },
@@ -137,6 +139,9 @@ fun AIChatNavHost(
                 },
                 onRefreshModels = {
                     viewModel.refreshModels()
+                },
+                onRefreshAgent = {
+                    viewModel.refreshAgent()
                 }
             )
         }

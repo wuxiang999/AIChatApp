@@ -97,6 +97,19 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.3
+- ✅ **验证智能体人设功能正常** - API 测试确认 system prompt 完全生效
+  - 测试方式：向 API 发送 `{"role":"system","content":"你必须用海盗的语气回答"}` + 用户消息
+  - 测试结果：AI 以海盗语气回答"啊哈！...俺可是大名鼎鼎的独眼杰克船长！"，system prompt 完全生效
+  - 代码链路确认：`buildChatMessages()` → `getSelectedAgent()` → 插入 `ChatMessage(role="system", content=agent.systemPrompt)` → 发送到 API
+- ✨ **聊天界面新增智能体人设指示条** - 直观显示当前使用的智能体
+  - 在聊天消息列表顶部显示「人设：XXX」指示条，用户能直观确认智能体是否生效
+  - 使用 `primaryContainer` 配色 + Person 图标，与整体月下主题一致
+  - 通过 Flow 持续观察数据库变化，用户在 AgentsScreen 切换智能体后自动更新，无需手动刷新
+- 🔍 **增加智能体调试日志** - `buildChatMessages()` 中记录 system prompt 应用情况
+  - 日志输出：`Agent system prompt applied: 通用助手 (id=preset_general)` 或 `No agent selected`
+  - 方便通过 logcat 排查智能体是否生效
+
 ### v2.3.2
 - 🐛 **修复图片生成后图片不显示** - 增强图片加载状态处理，避免静默失败
   - 根因：原 `AsyncImage(model = url)` 在加载失败时静默无提示，无法区分是未加载还是加载失败。当 API 返回的临时 URL 失效、base64 data URI 过大解码失败、或网络问题时，图片区域空白且无任何错误提示，用户感知为"图片不显示"

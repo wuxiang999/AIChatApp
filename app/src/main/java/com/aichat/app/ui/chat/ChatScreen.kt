@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Card
@@ -112,7 +113,9 @@ fun ChatScreen(
     onImageModelChange: (String) -> Unit,
     onImageEditModeChange: (Boolean) -> Unit,
     onRevokeMessage: (Int) -> Unit,
-    onRefreshModels: () -> Unit
+    onRefreshModels: () -> Unit,
+    currentAgentName: String? = null,
+    onRefreshAgent: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -258,35 +261,69 @@ fun ChatScreen(
             )
         }
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            ParticleBackground(modifier = Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                ParticleBackground(modifier = Modifier.fillMaxSize())
 
-            if (messages.isEmpty()) {
-                EmptyChatState()
-            } else {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    items(messages, key = { it.index }) { message ->
-                        MessageBubble(
-                            message = message,
-                            onRevokeMessage = onRevokeMessage
-                        )
+                    // 当前智能体人设指示条
+                    if (!currentAgentName.isNullOrBlank()) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "人设：$currentAgentName",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
-                    if (isLoading && messages.lastOrNull()?.role != "assistant") {
-                        item { ThinkingIndicator() }
+
+                    if (messages.isEmpty()) {
+                        EmptyChatState()
+                    } else {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(messages, key = { it.index }) { message ->
+                                MessageBubble(
+                                    message = message,
+                                    onRevokeMessage = onRevokeMessage
+                                )
+                            }
+                            if (isLoading && messages.lastOrNull()?.role != "assistant") {
+                                item { ThinkingIndicator() }
+                            }
+                        }
                     }
                 }
             }
         }
-    }
 }
 
 @Composable
