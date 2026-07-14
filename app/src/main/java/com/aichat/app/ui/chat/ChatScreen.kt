@@ -169,9 +169,17 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(messages.size, isLoading) {
+    // 流式响应时：消息数量变化或最后一条消息内容变化时，自动滚动到底部
+    val lastMessageContent = messages.lastOrNull()?.content
+    val lastMessageReasoning = messages.lastOrNull()?.reasoningContent
+    LaunchedEffect(messages.size, isLoading, lastMessageContent, lastMessageReasoning) {
         if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+            // 直接滚动到最后一条，确保流式更新时实时跟随
+            try {
+                listState.scrollToItem(messages.size - 1)
+            } catch (e: Exception) {
+                // 忽略滚动异常
+            }
         }
     }
 
@@ -330,15 +338,15 @@ fun ChatScreen(
 private fun EmptyChatState() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier.padding(top = 60.dp, start = 32.dp, end = 32.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
+                    .size(56.dp)
                     .clip(CircleShape)
                     .background(
                         brush = androidx.compose.ui.graphics.Brush.linearGradient(
@@ -352,28 +360,28 @@ private fun EmptyChatState() {
             ) {
                 Text(
                     text = "月",
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "月下AI",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "本地AI聊天助手",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "支持多轮对话 · 流式响应 · 图片上传\n图片生成 · 模型切换",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
@@ -658,15 +666,15 @@ private fun EndpointPicker(
             value = endpoints.find { it.id == currentEndpointId }?.name ?: "选择端点",
             onValueChange = {},
             readOnly = true,
-            label = { Text("API端点", style = MaterialTheme.typography.bodyMedium) },
+            label = { Text("API端点", style = MaterialTheme.typography.labelSmall) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             singleLine = true,
             colors = menuTextFieldColors(),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface)
+            textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface)
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -729,7 +737,7 @@ private fun ModelPicker(
                 modelSearchQuery = ""
                 onExpandedChange(true)
             },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
@@ -740,29 +748,30 @@ private fun ModelPicker(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "当前模型",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = if (expanded) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = currentModel,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "展开模型列表",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

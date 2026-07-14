@@ -97,6 +97,19 @@ cd AIChatApp
 
 ## 📋 变更记录
 
+### v2.3.4
+- 🐛 **修复 AI 回复时屏幕不自动滚动** - 流式响应实时跟随到底部
+  - 根因：原 `LaunchedEffect(messages.size, isLoading)` 只在消息数量变化时触发滚动，但流式响应时消息数量不变（只是最后一条消息的 content 不断更新），导致 AI 回复时屏幕不滚动，用户看不到实时加载内容
+  - 修复：`LaunchedEffect` 增加监听 `lastMessageContent` 和 `lastMessageReasoning`，当最后一条消息的 content 或 reasoningContent 变化时自动滚动到底部
+  - 同时改用 `scrollToItem` 替代 `animateScrollToItem`，避免动画延迟，确保流式更新时即时跟随
+- 🎨 **缩小端点和模型按钮** - 减少输入栏占用空间
+  - EndpointPicker：圆角 16dp→12dp，label bodyMedium→labelSmall，text bodyLarge→bodySmall
+  - ModelPicker：padding 16/10→12/6，圆角 16dp→12dp，label bodySmall→labelSmall，text bodyLarge→bodySmall，icon 添加 size(18dp)
+- 🎨 **修复空状态大片留白** - 聊天界面、对话列表、智能体页面
+  - EmptyChatState：Logo 80dp→56dp，居中→顶部对齐（top 60dp），字体 headlineLarge→titleLarge，间距大幅缩小
+  - EmptyConversationState：Logo 96dp→64dp，居中→顶部对齐（top 80dp），icon 46dp→32dp，间距缩小
+  - AgentsScreen 空状态：Logo 88dp→64dp，居中→顶部对齐（top 80dp），icon 40dp→32dp
+
 ### v2.3.3
 - ✅ **验证智能体人设功能正常** - API 测试确认 system prompt 完全生效
   - 测试方式：向 API 发送 `{"role":"system","content":"你必须用海盗的语气回答"}` + 用户消息
