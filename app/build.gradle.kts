@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -26,7 +28,7 @@ android {
     // 签名配置：从 gitignored 的 keystore.properties 读取，缺失时回退到 debug 签名
     // CI 通过 GitHub Secrets 还原 keystore.properties（见 .github/workflows/release.yml）
     val keystorePropsFile = rootProject.file("keystore.properties")
-    val keystoreProps = java.util.Properties()
+    val keystoreProps = Properties()
     if (keystorePropsFile.exists()) {
         keystoreProps.load(keystorePropsFile.inputStream())
     }
