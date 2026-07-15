@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -98,6 +99,7 @@ fun AIChatApp() {
             )),
             DrawerSection("工具", listOf(
                 DrawerEntry(Screen.Terminal.route, "终端日志", "实时日志与连接观测", Icons.Filled.Terminal),
+                DrawerEntry(Screen.Workflow.route, "工作流", "自动化任务流水线", Icons.Filled.AccountTree),
                 DrawerEntry(Screen.Memory.route, "记忆", "长期记忆 · 知识管理", Icons.Filled.Psychology),
                 DrawerEntry(Screen.ImageGen.route, "图片生成", "AI 文生图 / 图生图", Icons.Filled.Image)
             )),
@@ -383,7 +385,7 @@ private fun DrawerHeader(onClose: () -> Unit) {
             }
             IconButton(onClick = onClose) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.filled.Close,
+                    imageVector = Icons.Filled.Close,
                     contentDescription = "关闭侧边栏",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)

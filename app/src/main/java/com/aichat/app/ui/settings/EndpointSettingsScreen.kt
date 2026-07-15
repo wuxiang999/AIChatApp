@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aichat.app.data.collects.ApiProviderConfigs
 import com.aichat.app.data.collects.ProviderEndpointOption
@@ -506,7 +507,7 @@ fun EndpointSettingsScreen(
 
                 // Auto-fill endpoint and model
                 if (newProvider != null) {
-                    val prevEndpoint = ApiProviderConfigs.getDefaultApiEndpoint(prevProvider ?: return@let)
+                    val prevEndpoint = if (prevProvider != null) ApiProviderConfigs.getDefaultApiEndpoint(prevProvider) else ""
                     val currentIsDefault = apiEndpoint.isEmpty() || apiEndpoint == prevEndpoint
                     if (currentIsDefault) {
                         apiEndpoint = ApiProviderConfigs.getDefaultApiEndpoint(newProvider)

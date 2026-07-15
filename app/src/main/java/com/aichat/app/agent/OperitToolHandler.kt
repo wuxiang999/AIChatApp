@@ -2,7 +2,6 @@ package com.aichat.app.agent
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -21,12 +20,12 @@ class AIToolHandler {
 
     fun registerTool(
         name: String,
-        executor: (AITool) -> ToolResult
+        executor: (AITool) -> OperitToolResult
     ) {
         registerTool(
             name = name,
             executor = object : ToolExecutor {
-                override fun invoke(tool: AITool): ToolResult {
+                override fun invoke(tool: AITool): OperitToolResult {
                     return executor(tool)
                 }
             }
@@ -55,9 +54,7 @@ class AIToolHandler {
         toolHooks.forEach { hook ->
             try {
                 action(hook)
-            } catch (e: Exception) {
-                // Log if needed
-            }
+            } catch (_: Exception) { }
         }
     }
 
@@ -86,11 +83,11 @@ class AIToolHandler {
     fun buildToolInterceptionResult(
         toolName: String,
         decision: AIToolHookDecision.Block
-    ): ToolResult {
-        return ToolResult(
+    ): OperitToolResult {
+        return OperitToolResult(
             toolName = toolName,
             success = false,
-            result = StringResultData(""),
+            result = "",
             error = decision.reason
         )
     }
@@ -103,7 +100,7 @@ class AIToolHandler {
         notifyHooks("onToolExecutionStarted") { it.onToolExecutionStarted(tool) }
     }
 
-    fun notifyToolExecutionResult(tool: AITool, result: ToolResult) {
+    fun notifyToolExecutionResult(tool: AITool, result: OperitToolResult) {
         notifyHooks("onToolExecutionResult") { it.onToolExecutionResult(tool, result) }
     }
 
@@ -123,7 +120,7 @@ class AIToolHandler {
         return availableTools[toolName]
     }
 
-    fun executeTool(tool: AITool): ToolResult {
+    fun executeTool(tool: AITool): OperitToolResult {
         notifyToolCallRequested(tool)
         when (val interception = checkToolInterception(tool)) {
             AIToolHookDecision.Allow -> Unit
@@ -138,13 +135,12 @@ class AIToolHandler {
         val executor = availableTools[tool.name]
 
         if (executor == null) {
-            val notFoundResult =
-                ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error = "Tool not found: ${tool.name}"
-                )
+            val notFoundResult = OperitToolResult(
+                toolName = tool.name,
+                success = false,
+                result = "",
+                error = "Tool not found: ${tool.name}"
+            )
             notifyToolExecutionResult(tool, notFoundResult)
             notifyToolExecutionFinished(tool)
             return notFoundResult
@@ -152,13 +148,12 @@ class AIToolHandler {
 
         val validationResult = executor.validateParameters(tool)
         if (!validationResult.valid) {
-            val validationFailedResult =
-                ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error = validationResult.errorMessage
-                )
+            val validationFailedResult = OperitToolResult(
+                toolName = tool.name,
+                success = false,
+                result = "",
+                error = validationResult.errorMessage
+            )
             notifyToolExecutionResult(tool, validationFailedResult)
             notifyToolExecutionFinished(tool)
             return validationFailedResult
@@ -177,7 +172,7 @@ class AIToolHandler {
         }
     }
 
-    fun executeToolAndStream(tool: AITool): Flow<ToolResult> = flow {
+    fun executeToolAndStream(tool: AITool): Flow<OperitToolResult> = flow {
         notifyToolCallRequested(tool)
         when (val interception = checkToolInterception(tool)) {
             AIToolHookDecision.Allow -> Unit
@@ -193,13 +188,12 @@ class AIToolHandler {
         val executor = availableTools[tool.name]
 
         if (executor == null) {
-            val notFoundResult =
-                ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error = "Tool not found: ${tool.name}"
-                )
+            val notFoundResult = OperitToolResult(
+                toolName = tool.name,
+                success = false,
+                result = "",
+                error = "Tool not found: ${tool.name}"
+            )
             notifyToolExecutionResult(tool, notFoundResult)
             notifyToolExecutionFinished(tool)
             emit(notFoundResult)
@@ -208,13 +202,12 @@ class AIToolHandler {
 
         val validationResult = executor.validateParameters(tool)
         if (!validationResult.valid) {
-            val validationFailedResult =
-                ToolResult(
-                    toolName = tool.name,
-                    success = false,
-                    result = StringResultData(""),
-                    error = validationResult.errorMessage
-                )
+            val validationFailedResult = OperitToolResult(
+                toolName = tool.name,
+                success = false,
+                result = "",
+                error = validationResult.errorMessage
+            )
             notifyToolExecutionResult(tool, validationFailedResult)
             notifyToolExecutionFinished(tool)
             emit(validationFailedResult)
@@ -241,9 +234,9 @@ class AIToolHandler {
 }
 
 interface ToolExecutor {
-    fun invoke(tool: AITool): ToolResult
+    fun invoke(tool: AITool): OperitToolResult
 
-    fun invokeAndStream(tool: AITool): Flow<ToolResult> = flowOf(invoke(tool))
+    fun invokeAndStream(tool: AITool): Flow<OperitToolResult> = flowOf(invoke(tool))
 
     fun validateParameters(tool: AITool): ToolValidationResult {
         return ToolValidationResult(valid = true)
@@ -255,7 +248,7 @@ interface AIToolHook {
     fun onToolCallIntercept(tool: AITool): AIToolHookDecision = AIToolHookDecision.Allow
     fun onToolPermissionChecked(tool: AITool, granted: Boolean, reason: String? = null) {}
     fun onToolExecutionStarted(tool: AITool) {}
-    fun onToolExecutionResult(tool: AITool, result: ToolResult) {}
+    fun onToolExecutionResult(tool: AITool, result: OperitToolResult) {}
     fun onToolExecutionError(tool: AITool, throwable: Throwable) {}
     fun onToolExecutionFinished(tool: AITool) {}
 }

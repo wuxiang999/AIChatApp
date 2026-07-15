@@ -1,7 +1,5 @@
 package com.aichat.app.agent
 
-import com.aichat.app.agent.OperitToolResults.ToolResultData
-
 data class ToolParameter(val name: String, val value: String)
 
 data class AITool(
@@ -16,10 +14,13 @@ data class ToolInvocation(
     val responseLocation: IntRange
 )
 
-data class ToolResult(
+/**
+ * Operit's internal tool result type, distinct from ITool.ToolResult.
+ */
+data class OperitToolResult(
     val toolName: String,
     val success: Boolean,
-    val result: ToolResultData,
+    val result: String = "",
     val error: String? = null
 )
 

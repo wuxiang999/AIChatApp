@@ -35,10 +35,11 @@ import com.aichat.app.ui.settings.AgentSettingsScreen
 import com.aichat.app.ui.settings.EndpointSettingsScreen
 import com.aichat.app.ui.settings.GitSettingsScreen
 import com.aichat.app.ui.settings.SettingsScreen
-import com.aichat.app.ui.settings.WorkspaceSettingsScreen
 import com.aichat.app.ui.skills.SkillsScreen
 import com.aichat.app.ui.imagegen.ImageGenScreen
 import com.aichat.app.ui.terminal.TerminalScreen
+import com.aichat.app.ui.workflow.WorkflowScreen
+import com.aichat.app.ui.workflow.WorkflowViewModel
 import kotlinx.coroutines.delay
 
 sealed class Screen(val route: String) {
@@ -60,6 +61,7 @@ sealed class Screen(val route: String) {
     object SettingsAgent : Screen("settings/agent")
     object SettingsGit : Screen("settings/git")
     object SettingsAbout : Screen("settings/about")
+    object Workflow : Screen("workflow")
 }
 
 @Composable
@@ -249,6 +251,18 @@ fun CodeVibeNavHost(
         composable(Screen.Agent.route) {
             onRouteChange(Screen.Agent.route)
             AgentScreen()
+        }
+
+        composable(Screen.Workflow.route) {
+            onRouteChange(Screen.Workflow.route)
+            val vm: WorkflowViewModel = hiltViewModel()
+            WorkflowScreen(
+                workflowManager = vm.workflowManager,
+                onRunWorkflow = { workflow -> vm.runWorkflow(workflow) },
+                onEditWorkflow = { workflow ->
+                    navController.navigate("workflow_editor/${workflow.id}")
+                }
+            )
         }
     }
 }
