@@ -35,6 +35,7 @@ import com.aichat.app.ui.settings.AgentSettingsScreen
 import com.aichat.app.ui.settings.EndpointSettingsScreen
 import com.aichat.app.ui.settings.GitSettingsScreen
 import com.aichat.app.ui.settings.SettingsScreen
+import com.aichat.app.ui.settings.WorkspaceSettingsScreen
 import com.aichat.app.ui.skills.SkillsScreen
 import com.aichat.app.ui.imagegen.ImageGenScreen
 import com.aichat.app.ui.terminal.TerminalScreen

@@ -259,10 +259,11 @@ private fun WorkflowCard(
                     )
                 }
 
-                if (workflow.lastExecutionTime != null) {
+                val lastTime = workflow.lastExecutionTime
+                if (lastTime != null) {
                     InfoChip(
                         icon = Icons.Filled.Schedule,
-                        text = dateFormat.format(Date(workflow.lastExecutionTime))
+                        text = dateFormat.format(Date(lastTime))
                     )
                 }
             }
