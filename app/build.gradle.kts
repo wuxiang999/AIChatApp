@@ -23,19 +23,25 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("release.keystore")
-            storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD not set in CI")
-            keyAlias = System.getenv("KEY_ALIAS") ?: error("KEY_ALIAS not set in CI")
-            keyPassword = System.getenv("KEY_PASSWORD") ?: error("KEY_PASSWORD not set in CI")
+        val hasSigningEnv = System.getenv("STORE_PASSWORD") != null
+        create("release").apply {
+            if (hasSigningEnv) {
+                storeFile = file("release.keystore")
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS") ?: "yuexia_ai"
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("release")
+            val envOk = System.getenv("STORE_PASSWORD") != null
+            if (envOk) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
