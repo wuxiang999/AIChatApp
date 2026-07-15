@@ -579,7 +579,7 @@ internal fun globToRegex(glob: String): Regex {
 private fun File.readText(encodings: List<String>): String {
     val bytes = readBytes()
     for (enc in encodings) {
-        try { return bytes.toString(Charsets.forName(enc)) } catch (_: Exception) { }
+        try { return bytes.toString(java.nio.charset.Charset.forName(enc)) } catch (_: Exception) { }
     }
     return bytes.toString(Charsets.UTF_8)
 }
