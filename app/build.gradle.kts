@@ -3,7 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
-    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -26,15 +25,15 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("release.keystore")
-            storePassword = "yuexia123"
-            keyAlias = "yuexia_ai"
-            keyPassword = "yuexia123"
+            storePassword = System.getenv("STORE_PASSWORD") ?: error("STORE_PASSWORD not set in CI")
+            keyAlias = System.getenv("KEY_ALIAS") ?: error("KEY_ALIAS not set in CI")
+            keyPassword = System.getenv("KEY_PASSWORD") ?: error("KEY_PASSWORD not set in CI")
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isDebuggable = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
@@ -76,6 +75,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("com.github.jeziellago:compose-markdown:0.5.2")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -94,7 +94,6 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     implementation("io.coil-kt:coil-compose:2.5.0")
 

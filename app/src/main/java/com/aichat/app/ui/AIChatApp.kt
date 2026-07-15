@@ -1,13 +1,10 @@
 package com.aichat.app.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,16 +13,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Hub
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Hub
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -34,9 +33,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -53,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -65,7 +69,13 @@ private data class DrawerEntry(
     val route: String,
     val label: String,
     val description: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: ImageVector
+)
+
+private data class BottomNavItem(
+    val route: String,
+    val label: String,
+    val icon: ImageVector
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,19 +84,33 @@ fun AIChatApp() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     var currentRoute by remember { mutableStateOf<String?>(Screen.ChatList.route) }
 
     val drawerItems = remember {
         listOf(
             DrawerEntry(Screen.ChatList.route, "对话列表", "查看与管理历史会话", Icons.Filled.Chat),
-            DrawerEntry(Screen.Agents.route, "智能体", "选择预设角色或自定义", Icons.Default.Person),
-            DrawerEntry(Screen.Memory.route, "记忆", "长期记忆，让AI记住你", Icons.Default.Psychology),
-            DrawerEntry(Screen.Skills.route, "技能", "管理与注入可用技能", Icons.Default.AutoAwesome),
-            DrawerEntry(Screen.Mcp.route, "MCP", "外部工具与数据源", Icons.Default.Hub),
-            DrawerEntry(Screen.Terminal.route, "终端", "实时日志与连接观测", Icons.Default.Terminal),
-            DrawerEntry(Screen.Settings.route, "设置", "API 端点、模型与偏好", Icons.Default.Settings)
+            DrawerEntry(Screen.Agents.route, "智能体", "选择预设角色或自定义", Icons.Filled.Person),
+            DrawerEntry(Screen.Memory.route, "记忆", "长期记忆，让AI记住你", Icons.Filled.Psychology),
+            DrawerEntry(Screen.Skills.route, "技能", "管理与注入可用技能", Icons.Filled.AutoAwesome),
+            DrawerEntry(Screen.Agent.route, "AI代理", "自主AI代理 · 代码生成", Icons.Filled.Code),
+            DrawerEntry(Screen.Mcp.route, "MCP", "外部工具与数据源", Icons.Filled.Hub),
+            DrawerEntry(Screen.ImageGen.route, "图片生成", "AI 文生图 / 图生图", Icons.Filled.Image),
+            DrawerEntry(Screen.Terminal.route, "终端", "实时日志与连接观测", Icons.Filled.Terminal),
+            DrawerEntry(Screen.Settings.route, "设置", "API 端点、模型与偏好", Icons.Filled.Settings)
         )
     }
+
+    val bottomNavItems = remember {
+        listOf(
+            BottomNavItem(Screen.ChatList.route, "对话", Icons.Filled.Chat),
+            BottomNavItem(Screen.Agents.route, "智能体", Icons.Filled.Person),
+            BottomNavItem(Screen.Agent.route, "AI代理", Icons.Filled.Code),
+            BottomNavItem(Screen.Settings.route, "设置", Icons.Filled.Settings)
+        )
+    }
+
+    val showBottomBar = currentRoute !in listOf(Screen.Chat.route, Screen.NewChat.route)
 
     fun go(route: String) {
         scope.launch { drawerState.close() }
@@ -100,6 +124,31 @@ fun AIChatApp() {
             }
         }
         currentRoute = route
+    }
+
+    val title = when (currentRoute) {
+        Screen.Settings.route -> "设置"
+        Screen.Agents.route -> "智能体"
+        Screen.Memory.route -> "记忆"
+        Screen.Skills.route -> "技能"
+        Screen.Mcp.route -> "MCP"
+        Screen.ImageGen.route -> "图片生成"
+        Screen.Agent.route -> "AI代理"
+        Screen.Terminal.route -> "终端"
+        Screen.Chat.route -> "对话"
+        else -> "月下AI"
+    }
+
+    val subtitle = when (currentRoute) {
+        Screen.Settings.route -> "管理 API 端点与可用模型"
+        Screen.Agents.route -> "选择一个智能体开始对话"
+        Screen.Memory.route -> "长期记忆，让AI记住你"
+        Screen.Skills.route -> "管理与注入可用技能"
+        Screen.Mcp.route -> "外部工具与数据源"
+        Screen.ImageGen.route -> "AI 文生图 / 图生图"
+        Screen.Agent.route -> "自主编程 · 工具调用 · 生成代码"
+        Screen.Terminal.route -> "实时日志与连接观测"
+        else -> null
     }
 
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -181,27 +230,10 @@ fun AIChatApp() {
                         title = {
                             Column {
                                 Text(
-                                    text = when (currentRoute) {
-                                        Screen.Settings.route -> "设置"
-                                        Screen.Agents.route -> "智能体"
-                                        Screen.Memory.route -> "记忆"
-                                        Screen.Skills.route -> "技能"
-                                        Screen.Mcp.route -> "MCP"
-                                        Screen.Terminal.route -> "终端"
-                                        else -> "月下AI"
-                                    },
+                                    text = title,
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold
                                 )
-                                val subtitle = when (currentRoute) {
-                                    Screen.Settings.route -> "管理 API 端点与可用模型"
-                                    Screen.Agents.route -> "选择一个智能体开始对话"
-                                    Screen.Memory.route -> "长期记忆，让AI记住你"
-                                    Screen.Skills.route -> "管理与注入可用技能"
-                                    Screen.Mcp.route -> "外部工具与数据源"
-                                    Screen.Terminal.route -> "实时日志与连接观测"
-                                    else -> null
-                                }
                                 subtitle?.let {
                                     Text(
                                         text = it,
@@ -245,11 +277,36 @@ fun AIChatApp() {
                             }
                         }
                     )
-                }
+                },
+                bottomBar = {
+                    if (showBottomBar) {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp
+                        ) {
+                            bottomNavItems.forEach { item ->
+                                val selected = currentRoute == item.route
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = { go(item.route) },
+                                    icon = {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = item.label
+                                        )
+                                    },
+                                    label = { Text(item.label) }
+                                )
+                            }
+                        }
+                    }
+                },
+                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {
                     AIChatNavHost(
                         navController = navController,
+                        snackbarHostState = snackbarHostState,
                         onRouteChange = { route -> currentRoute = route },
                         onOpenDrawer = { scope.launch { drawerState.open() } }
                     )

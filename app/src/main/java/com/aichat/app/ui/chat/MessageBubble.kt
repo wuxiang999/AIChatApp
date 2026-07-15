@@ -1,6 +1,9 @@
 package com.aichat.app.ui.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ContentValues
+import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Base64
@@ -51,8 +54,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.jeziellago.compose.markdown.Markdown
+import com.jeziellago.compose.markdown.MarkdownStyle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.aichat.app.data.model.Message
@@ -165,7 +172,7 @@ fun MessageBubble(
                         else MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    modifier = if (isUser && !message.isRevoked) {
+                    modifier = if (!message.isRevoked) {
                         Modifier.pointerInput(Unit) {
                             detectTapGestures(
                                 onLongPress = { showMenu = true }
@@ -174,21 +181,55 @@ fun MessageBubble(
                     } else Modifier
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = if (message.isRevoked) "你撤回了一条消息" else message.content.ifEmpty { "\u200B" },
-                            style = if (message.isRevoked) MaterialTheme.typography.bodyMedium
-                            else MaterialTheme.typography.bodyLarge,
-                            color = if (isUser) {
-                                if (message.isRevoked) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                                else MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(max = 320.dp)
-                                .verticalScroll(replyScrollState)
-                        )
+                        if (!message.isRevoked && !isUser) {
+                            Markdown(
+                                content = message.content.ifEmpty { "\u200B" },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(max = 320.dp),
+                                style = MarkdownStyle(
+                                    text = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    codeTextColor = MaterialTheme.colorScheme.onSurface,
+                                    codeBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                    h1TextStyle = TextStyle(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    ),
+                                    h2TextStyle = TextStyle(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    h3TextStyle = TextStyle(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    ),
+                                    linkTextColor = MaterialTheme.colorScheme.primary,
+                                    quoteTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    quoteBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+                        } else {
+                            Text(
+                                text = if (message.isRevoked) "你撤回了一条消息" else message.content.ifEmpty { "\u200B" },
+                                style = if (message.isRevoked) MaterialTheme.typography.bodyMedium
+                                else MaterialTheme.typography.bodyLarge,
+                                color = if (isUser) {
+                                    if (message.isRevoked) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                                    else MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(max = 320.dp)
+                                    .verticalScroll(replyScrollState)
+                            )
+                        }
                         if (!message.isRevoked && message.isStreaming) {
                             Spacer(modifier = Modifier.width(8.dp))
                             CircularProgressIndicator(
@@ -200,18 +241,42 @@ fun MessageBubble(
                         }
                     }
                 }
-                if (isUser && showMenu && !message.isRevoked) {
+                if (showMenu && !message.isRevoked) {
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("撤回") },
+                            text = { Text("复制") },
                             onClick = {
-                                onRevokeMessage(message.index)
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("message", message.content)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
                                 showMenu = false
                             }
                         )
+                        if (message.reasoningContent != null) {
+                            DropdownMenuItem(
+                                text = { Text("复制思考内容") },
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("reasoning", message.reasoningContent)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "已复制思考内容", Toast.LENGTH_SHORT).show()
+                                    showMenu = false
+                                }
+                            )
+                        }
+                        if (isUser) {
+                            DropdownMenuItem(
+                                text = { Text("撤回") },
+                                onClick = {
+                                    onRevokeMessage(message.index)
+                                    showMenu = false
+                                }
+                            )
+                        }
                     }
                 }
             }

@@ -7,18 +7,20 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '版本号 (例如: 2.1.0)'
+        description: '版本号 (例如: 2.4.0)'
         required: true
-        default: '2.1.0'
+        default: '2.4.0'
 
 jobs:
-  build-and-release:
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ORG_GITHUB_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -27,18 +29,29 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Set up Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 build-tools;34.0.0 ndk;25.1.8937393 cmake;3.22.1'
+          packages: 'platforms;android-34 build-tools;34.0.0'
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.KEYSTORE_BASE64 != null
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+
       - name: Build Release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'yuexia_ai' }}
         run: ./gradlew assembleRelease --no-daemon
 
-      - name: Get version from tag
+      - name: Get version
         id: get_version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -49,56 +62,55 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Rename APK with version
+      - name: Rename APK
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/release/app-release.apk release/YueXiaAI-v${{ env.VERSION }}.apk
+          cp app/build/outputs/apk/release/app-release.apk "release/YueXiaAI-v${{ env.VERSION }}.apk"
+          # Also copy debug APK for testing
+          cp app/build/outputs/apk/debug/app-debug.apk "release/YueXiaAI-v${{ env.VERSION }}-debug.apk" 2>/dev/null || true
 
-      - name: Create Release (tag push)
-        if: github.event_name == 'push'
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          NOTES=$(cat << 'EOF'
+          ## 更新内容
+
+          ### 🚀 新功能
+          - AI 代理引擎：自主思考 + 工具调用 + 代码生成
+          - MCP 协议支持：接入外部工具生态
+          - Skills 系统升级：{{input}} 占位符替换 + 分类管理
+          - 智能记忆：对话自动提取关键信息
+          - 代码沙箱：安全执行代码片段
+
+          ### 🔧 改进
+          - 完整 Markdown 渲染支持
+          - 用户界面重构：统一布局 + 底部导航
+          - 权限系统：三级细粒度控制
+          - 消息复制功能
+
+          ### 🐛 修复
+          - 修复消息重复发送 Bug
+          - 修复停止生成无效问题
+          - 移除硬编码 API Key
+
+          ### 📦 安装说明
+          下载 APK 文件后直接安装，可覆盖更新。Android 8.0+ 设备可用。
+          EOF
+          )
+          echo "notes<<DELIM" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "DELIM" >> $GITHUB_OUTPUT
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/YueXiaAI-v${{ env.VERSION }}.apk
+          tag_name: v${{ env.VERSION }}
+          files: |
+            release/YueXiaAI-v${{ env.VERSION }}.apk
+            release/YueXiaAI-v${{ env.VERSION }}-debug.apk
           name: "月下AI v${{ env.VERSION }}"
-          body: |
-            ## 月下AI v${{ env.VERSION }}
-
-            ### 更新内容
-            - 🚀 新增终端系统（实时日志观测，按级别着色，自动滚动）
-            - 🧠 新增记忆系统（长期记忆，跨会话注入对话上下文）
-            - ⚡ 新增技能系统（可管理技能库，提示词模板注入）
-            - 🔌 新增 MCP 系统（服务器配置 + 连通性测试 + 上下文注入）
-            - 抽屉菜单新增 记忆/技能/MCP/终端 四个入口
-
-            ### 安装说明
-            下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
-            ⚠️ 本次数据库升级，历史会话将清空重建。
+          body: ${{ steps.release_notes.outputs.notes }}
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release (manual)
-        if: github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.event.inputs.version }}
-          files: release/YueXiaAI-v${{ env.VERSION }}.apk
-          name: "月下AI v${{ env.VERSION }}"
-          body: |
-            ## 月下AI v${{ env.VERSION }}
-
-            ### 更新内容
-            - 🚀 新增终端系统（实时日志观测，按级别着色，自动滚动）
-            - 🧠 新增记忆系统（长期记忆，跨会话注入对话上下文）
-            - ⚡ 新增技能系统（可管理技能库，提示词模板注入）
-            - 🔌 新增 MCP 系统（服务器配置 + 连通性测试 + 上下文注入）
-            - 抽屉菜单新增 记忆/技能/MCP/终端 四个入口
-
-            ### 安装说明
-            下载 APK 文件后直接安装即可，可覆盖更新。Android 8.0+ 设备可用。
-            ⚠️ 本次数据库升级，历史会话将清空重建。
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ORG_GITHUB_PAT || secrets.GITHUB_TOKEN }}

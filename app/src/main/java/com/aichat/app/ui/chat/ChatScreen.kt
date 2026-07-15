@@ -3,8 +3,6 @@ package com.aichat.app.ui.chat
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -54,8 +51,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -88,36 +83,46 @@ import kotlinx.coroutines.launch
 
 private const val MAX_FILE_SIZE = 50_000
 
+data class ChatCallbacks(
+    val onSendMessage: (String, List<String>) -> Unit,
+    val onStopGeneration: () -> Unit,
+    val onClearConversation: () -> Unit,
+    val onModelChange: (String) -> Unit,
+    val onRevokeMessage: (Int) -> Unit,
+    val onGenerateImage: (String) -> Unit,
+    val onEditImage: (String, String) -> Unit,
+    val onRefreshModels: () -> Unit,
+    val onRefreshAgent: () -> Unit,
+    val onNewConversation: () -> Unit,
+    val onEndpointChange: (Long) -> Unit,
+    val onImageCountChange: (Int) -> Unit,
+    val onImageSizeChange: (String) -> Unit,
+    val onImageModelChange: (String) -> Unit,
+    val onImageEditModeChange: (Boolean) -> Unit
+)
+
+data class ChatState(
+    val messages: List<Message>,
+    val isLoading: Boolean,
+    val error: String?,
+    val currentModel: String,
+    val availableModels: List<String>,
+    val endpoints: List<ApiEndpoint>,
+    val currentEndpointId: Long?,
+    val imageCount: Int,
+    val imageSize: String,
+    val imageModel: String,
+    val isImageEditMode: Boolean,
+    val currentAgentName: String?
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    messages: List<Message>,
-    isLoading: Boolean,
-    error: String?,
-    currentModel: String,
-    availableModels: List<String>,
-    endpoints: List<ApiEndpoint>,
-    currentEndpointId: Long?,
-    imageCount: Int,
-    imageSize: String,
-    imageModel: String,
-    isImageEditMode: Boolean,
-    onSendMessage: (String, List<String>) -> Unit,
-    onStopGeneration: () -> Unit,
-    onClearConversation: () -> Unit,
-    onModelChange: (String) -> Unit,
-    onEndpointChange: (Long) -> Unit,
-    onNewConversation: () -> Unit,
-    onGenerateImage: (String) -> Unit,
-    onEditImage: (String, String) -> Unit,
-    onImageCountChange: (Int) -> Unit,
-    onImageSizeChange: (String) -> Unit,
-    onImageModelChange: (String) -> Unit,
-    onImageEditModeChange: (Boolean) -> Unit,
-    onRevokeMessage: (Int) -> Unit,
-    onRefreshModels: () -> Unit,
-    currentAgentName: String? = null,
-    onRefreshAgent: () -> Unit = {}
+    state: ChatState,
+    callbacks: ChatCallbacks,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -126,7 +131,6 @@ fun ChatScreen(
     val selectedImageUris = remember { mutableStateListOf<String>() }
     val selectedFileContents = remember { mutableStateListOf<String>() }
     val listState = rememberLazyListState()
-    val snackbarHostState = remember { SnackbarHostState() }
     var modelExpanded by remember { mutableStateOf(false) }
     var endpointExpanded by remember { mutableStateOf(false) }
     var imageCountExpanded by remember { mutableStateOf(false) }
@@ -141,8 +145,8 @@ fun ChatScreen(
     ) { uri: Uri? ->
         uri?.let {
             selectedImageUris.add(it.toString())
-            if (!isImageEditMode) {
-                onImageEditModeChange(true)
+            if (!state.isImageEditMode) {
+                callbacks.onImageEditModeChange(true)
             }
         }
     }
@@ -171,28 +175,76 @@ fun ChatScreen(
         }
     }
 
-    // 流式响应时：消息数量变化或最后一条消息内容变化时，自动滚动到底部
-    val lastMessageContent = messages.lastOrNull()?.content
-    val lastMessageReasoning = messages.lastOrNull()?.reasoningContent
-    LaunchedEffect(messages.size, isLoading, lastMessageContent, lastMessageReasoning) {
-        if (messages.isNotEmpty()) {
-            // 直接滚动到最后一条，确保流式更新时实时跟随
+    val lastMessageContent = state.messages.lastOrNull()?.content
+    val lastMessageReasoning = state.messages.lastOrNull()?.reasoningContent
+    LaunchedEffect(state.messages.size, state.isLoading, lastMessageContent, lastMessageReasoning) {
+        if (state.messages.isNotEmpty()) {
             try {
-                listState.scrollToItem(messages.size - 1)
-            } catch (e: Exception) {
-                // 忽略滚动异常
-            }
+                listState.scrollToItem(state.messages.size - 1)
+            } catch (_: Exception) {}
         }
     }
 
-    LaunchedEffect(error) {
-        error?.let { snackbarHostState.showSnackbar(it) }
+    LaunchedEffect(state.error) {
+        state.error?.let { snackbarHostState.showSnackbar(it) }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
+    Box(modifier = modifier.fillMaxSize()) {
+        ParticleBackground(modifier = Modifier.fillMaxSize())
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (!state.currentAgentName.isNullOrBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "人设：${state.currentAgentName}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            if (state.messages.isEmpty()) {
+                EmptyChatState(modifier = Modifier.weight(1f))
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.messages, key = { it.index }) { message ->
+                        MessageBubble(
+                            message = message,
+                            onRevokeMessage = callbacks.onRevokeMessage
+                        )
+                    }
+                    if (state.isLoading && state.messages.lastOrNull()?.role != "assistant") {
+                        item { ThinkingIndicator() }
+                    }
+                }
+            }
+
             ChatInputBar(
                 text = text,
                 onTextChange = { text = it },
@@ -200,54 +252,49 @@ fun ChatScreen(
                 onToggleImageMode = {
                     isImageMode = !isImageMode
                     if (!isImageMode) {
-                        onImageEditModeChange(false)
+                        callbacks.onImageEditModeChange(false)
                         selectedImageUris.clear()
                     }
                 },
-                isLoading = isLoading,
-                endpoints = endpoints,
-                currentEndpointId = currentEndpointId,
+                isLoading = state.isLoading,
+                endpoints = state.endpoints,
+                currentEndpointId = state.currentEndpointId,
                 endpointExpanded = endpointExpanded,
                 onEndpointExpandedChange = { endpointExpanded = it },
-                onEndpointChange = onEndpointChange,
-                availableModels = availableModels,
-                currentModel = currentModel,
+                onEndpointChange = callbacks.onEndpointChange,
+                availableModels = state.availableModels,
+                currentModel = state.currentModel,
                 modelExpanded = modelExpanded,
-                onModelExpandedChange = {
-                    modelExpanded = it
-                    if (!it) {
-                        // 关闭时清除搜索（搜索态在组件内部维护）
-                    }
-                },
-                onModelChange = onModelChange,
-                onRefreshModels = onRefreshModels,
+                onModelExpandedChange = { modelExpanded = it },
+                onModelChange = callbacks.onModelChange,
+                onRefreshModels = callbacks.onRefreshModels,
                 selectedImageUris = selectedImageUris,
                 onRemoveImage = { idx -> selectedImageUris.removeAt(idx) },
                 onPickImage = { imagePickerLauncher.launch("image/*") },
                 onPickFile = { filePickerLauncher.launch("*/*") },
-                isImageEditMode = isImageEditMode,
-                onImageEditModeChange = onImageEditModeChange,
-                imageCount = imageCount,
-                imageSize = imageSize,
+                isImageEditMode = state.isImageEditMode,
+                onImageEditModeChange = callbacks.onImageEditModeChange,
+                imageCount = state.imageCount,
+                imageSize = state.imageSize,
                 imageCountOptions = imageCountOptions,
                 imageSizeOptions = imageSizeOptions,
                 imageCountExpanded = imageCountExpanded,
                 imageSizeExpanded = imageSizeExpanded,
                 onImageCountExpandedChange = { imageCountExpanded = it },
                 onImageSizeExpandedChange = { imageSizeExpanded = it },
-                onImageCountChange = onImageCountChange,
-                onImageSizeChange = onImageSizeChange,
+                onImageCountChange = callbacks.onImageCountChange,
+                onImageSizeChange = callbacks.onImageSizeChange,
                 hasFileContents = selectedFileContents.isNotEmpty(),
                 onSendClick = {
                     focusManager.clearFocus()
                     if (isImageMode) {
-                        if (isImageEditMode && selectedImageUris.isNotEmpty() && text.isNotBlank()) {
-                            onEditImage(selectedImageUris.first(), text)
+                        if (state.isImageEditMode && selectedImageUris.isNotEmpty() && text.isNotBlank()) {
+                            callbacks.onEditImage(selectedImageUris.first(), text)
                             selectedImageUris.clear()
-                            onImageEditModeChange(false)
+                            callbacks.onImageEditModeChange(false)
                             text = ""
-                        } else if (!isImageEditMode && text.isNotBlank()) {
-                            onGenerateImage(text)
+                        } else if (!state.isImageEditMode && text.isNotBlank()) {
+                            callbacks.onGenerateImage(text)
                             text = ""
                         }
                     } else {
@@ -256,7 +303,7 @@ fun ChatScreen(
                                 append(text)
                                 selectedFileContents.forEach { fc -> append("\n\n").append(fc) }
                             }
-                            onSendMessage(fullText, selectedImageUris.toList())
+                            callbacks.onSendMessage(fullText, selectedImageUris.toList())
                             selectedImageUris.clear()
                             selectedFileContents.clear()
                             text = ""
@@ -265,130 +312,64 @@ fun ChatScreen(
                 },
                 onStopClick = {
                     focusManager.clearFocus()
-                    onStopGeneration()
+                    callbacks.onStopGeneration()
                 },
-                onNewConversation = onNewConversation,
-                onClearConversation = onClearConversation
+                onNewConversation = callbacks.onNewConversation,
+                onClearConversation = callbacks.onClearConversation
             )
         }
-    ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                ParticleBackground(modifier = Modifier.fillMaxSize())
-
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // 当前智能体人设指示条
-                    if (!currentAgentName.isNullOrBlank()) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "人设：$currentAgentName",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-
-                    if (messages.isEmpty()) {
-                        EmptyChatState()
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(messages, key = { it.index }) { message ->
-                                MessageBubble(
-                                    message = message,
-                                    onRevokeMessage = onRevokeMessage
-                                )
-                            }
-                            if (isLoading && messages.lastOrNull()?.role != "assistant") {
-                                item { ThinkingIndicator() }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    }
 }
 
 @Composable
-private fun EmptyChatState() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
+private fun EmptyChatState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 60.dp, start = 32.dp, end = 32.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary
-                            )
+        Spacer(modifier = Modifier.height(60.dp))
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary
                         )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "月",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
-                text = "月下AI",
+                text = "月",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "本地AI聊天助手",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "支持多轮对话 · 流式响应 · 图片上传\n图片生成 · 模型切换",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
         }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "月下AI",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "本地AI聊天助手",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "支持多轮对话 · 流式响应 · 图片上传\n图片生成 · 模型切换",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -509,7 +490,6 @@ private fun ChatInputBar(
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // 输入框 + 工具按钮 + 发送按钮
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -755,9 +735,6 @@ private fun ModelPicker(
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // 触发器：用 Surface + Row + Text 替代 readOnly TextField + clickable
-    // 原因：readOnly OutlinedTextField 的内部 pointerInput 会拦截点击事件，导致
-    // Modifier.clickable 收不到点击，ModalBottomSheet 无法展开
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -817,7 +794,6 @@ private fun ModelPicker(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp)
             ) {
-                // 标题行：标题 + 模型数量 + 刷新按钮
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -846,7 +822,6 @@ private fun ModelPicker(
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                // 搜索框（在 BottomSheet 内，不在 Popup 内，不会有焦点/IME 冲突）
                 OutlinedTextField(
                     value = modelSearchQuery,
                     onValueChange = { modelSearchQuery = it },
@@ -863,9 +838,7 @@ private fun ModelPicker(
                     )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                // 模型列表（ModalBottomSheet 不走 IntrinsicSize.Min，LazyColumn 可安全使用）
                 when {
-                    // 端点无模型：提示刷新
                     availableModels.isEmpty() -> {
                         Box(
                             modifier = Modifier
@@ -895,7 +868,6 @@ private fun ModelPicker(
                             }
                         }
                     }
-                    // 搜索无结果
                     filteredModels.isEmpty() -> {
                         Box(
                             modifier = Modifier
@@ -910,7 +882,6 @@ private fun ModelPicker(
                             )
                         }
                     }
-                    // 正常列表
                     else -> {
                         LazyColumn(
                             modifier = Modifier
@@ -1114,8 +1085,8 @@ private fun ImageOptionsRow(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-private @Composable
-fun menuTextFieldColors() = TextFieldDefaults.colors(
+@Composable
+private fun menuTextFieldColors() = TextFieldDefaults.colors(
     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     focusedIndicatorColor = MaterialTheme.colorScheme.primary,
@@ -1125,3 +1096,4 @@ fun menuTextFieldColors() = TextFieldDefaults.colors(
     focusedLabelColor = MaterialTheme.colorScheme.primary,
     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
+

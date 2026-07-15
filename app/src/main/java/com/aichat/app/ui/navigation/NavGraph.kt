@@ -1,11 +1,16 @@
 package com.aichat.app.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -15,8 +20,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.aichat.app.ui.agent.AgentScreen
 import com.aichat.app.ui.agents.AgentsScreen
+import com.aichat.app.ui.chat.ChatCallbacks
 import com.aichat.app.ui.chat.ChatScreen
+import com.aichat.app.ui.chat.ChatState
 import com.aichat.app.ui.chat.ChatViewModel
 import com.aichat.app.ui.conversations.ConversationsScreen
 import com.aichat.app.ui.conversations.ConversationsViewModel
@@ -24,6 +32,7 @@ import com.aichat.app.ui.mcp.McpScreen
 import com.aichat.app.ui.memory.MemoryScreen
 import com.aichat.app.ui.settings.SettingsScreen
 import com.aichat.app.ui.skills.SkillsScreen
+import com.aichat.app.ui.imagegen.ImageGenScreen
 import com.aichat.app.ui.terminal.TerminalScreen
 import kotlinx.coroutines.delay
 
@@ -39,17 +48,22 @@ sealed class Screen(val route: String) {
     object Skills : Screen("skills")
     object Mcp : Screen("mcp")
     object Memory : Screen("memory")
+    object ImageGen : Screen("image_gen")
+    object Agent : Screen("agent")
 }
 
 @Composable
 fun AIChatNavHost(
     navController: NavHostController,
+    snackbarHostState: SnackbarHostState,
     onRouteChange: (String?) -> Unit,
     onOpenDrawer: () -> Unit
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.ChatList.route
+        startDestination = Screen.ChatList.route,
+        enterTransition = { fadeIn(animationSpec = tween(300)) },
+        exitTransition = { fadeOut(animationSpec = tween(300)) }
     ) {
         composable(Screen.ChatList.route) {
             onRouteChange(Screen.ChatList.route)
@@ -93,7 +107,7 @@ fun AIChatNavHost(
             val isImageEditMode by viewModel.isImageEditMode.collectAsStateWithLifecycle()
             val currentAgentName by viewModel.currentAgentName.collectAsStateWithLifecycle()
 
-            ChatScreen(
+            val state = ChatState(
                 messages = messages,
                 isLoading = isLoading,
                 error = error,
@@ -105,52 +119,33 @@ fun AIChatNavHost(
                 imageSize = imageSize,
                 imageModel = imageModel,
                 isImageEditMode = isImageEditMode,
-                currentAgentName = currentAgentName,
-                onSendMessage = { message, images ->
-                    viewModel.sendMessage(message, images)
-                },
-                onStopGeneration = {
-                    viewModel.stopGeneration()
-                },
-                onClearConversation = {
-                    viewModel.clearConversation()
-                },
-                onModelChange = { model ->
-                    viewModel.setModel(model)
-                },
-                onEndpointChange = { endpointId ->
-                    viewModel.selectEndpoint(endpointId)
-                },
-                onNewConversation = {
-                    navController.navigate(Screen.NewChat.route)
-                },
-                onGenerateImage = { prompt ->
-                    viewModel.generateImage(prompt)
-                },
-                onEditImage = { imageUri, prompt ->
-                    viewModel.editImage(imageUri, prompt)
-                },
-                onImageCountChange = { count ->
-                    viewModel.setImageCount(count)
-                },
-                onImageSizeChange = { size ->
-                    viewModel.setImageSize(size)
-                },
-                onImageModelChange = { model ->
-                    viewModel.setImageModel(model)
-                },
-                onImageEditModeChange = { isEdit ->
-                    viewModel.setImageEditMode(isEdit)
-                },
-                onRevokeMessage = { index ->
-                    viewModel.revokeMessage(index)
-                },
-                onRefreshModels = {
-                    viewModel.refreshModels()
-                },
-                onRefreshAgent = {
-                    viewModel.refreshAgent()
-                }
+                currentAgentName = currentAgentName
+            )
+
+            val callbacks = remember {
+                ChatCallbacks(
+                    onSendMessage = { message, images -> viewModel.sendMessage(message, images) },
+                    onStopGeneration = { viewModel.stopGeneration() },
+                    onClearConversation = { viewModel.clearConversation() },
+                    onModelChange = { model -> viewModel.setModel(model) },
+                    onEndpointChange = { endpointId -> viewModel.selectEndpoint(endpointId) },
+                    onNewConversation = { navController.navigate(Screen.NewChat.route) },
+                    onGenerateImage = { prompt -> viewModel.generateImage(prompt) },
+                    onEditImage = { imageUri, prompt -> viewModel.editImage(imageUri, prompt) },
+                    onImageCountChange = { count -> viewModel.setImageCount(count) },
+                    onImageSizeChange = { size -> viewModel.setImageSize(size) },
+                    onImageModelChange = { model -> viewModel.setImageModel(model) },
+                    onImageEditModeChange = { isEdit -> viewModel.setImageEditMode(isEdit) },
+                    onRevokeMessage = { index -> viewModel.revokeMessage(index) },
+                    onRefreshModels = { viewModel.refreshModels() },
+                    onRefreshAgent = { viewModel.refreshAgent() }
+                )
+            }
+
+            ChatScreen(
+                state = state,
+                callbacks = callbacks,
+                snackbarHostState = snackbarHostState
             )
         }
 
@@ -200,9 +195,19 @@ fun AIChatNavHost(
             McpScreen()
         }
 
+        composable(Screen.ImageGen.route) {
+            onRouteChange(Screen.ImageGen.route)
+            ImageGenScreen()
+        }
+
         composable(Screen.Memory.route) {
             onRouteChange(Screen.Memory.route)
             MemoryScreen()
+        }
+
+        composable(Screen.Agent.route) {
+            onRouteChange(Screen.Agent.route)
+            AgentScreen()
         }
     }
 }

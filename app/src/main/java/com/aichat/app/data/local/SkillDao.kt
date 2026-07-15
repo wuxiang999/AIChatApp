@@ -23,4 +23,18 @@ interface SkillDao {
 
     @Query("DELETE FROM skills WHERE id = :id")
     suspend fun deleteSkillById(id: Long)
+
+    @Query("SELECT * FROM skills WHERE enabled = 1 AND category = :category ORDER BY createdAt DESC")
+    suspend fun getEnabledSkillsByCategory(category: String): List<Skill>
+
+    @Query("SELECT DISTINCT category FROM skills WHERE category != '' ORDER BY category ASC")
+    suspend fun getAllCategories(): List<String>
+
+    @Query("""
+        UPDATE skills 
+        SET name = :name, description = :description, promptTemplate = :promptTemplate, 
+            category = :category, tags = :tags 
+        WHERE id = :id
+    """)
+    suspend fun updateSkill(id: Long, name: String, description: String, promptTemplate: String, category: String, tags: String)
 }

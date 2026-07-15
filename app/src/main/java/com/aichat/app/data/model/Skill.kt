@@ -14,5 +14,7 @@ data class Skill(
     val description: String,
     val promptTemplate: String,
     val enabled: Boolean = true,
+    val category: String = "general",
+    val tags: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )

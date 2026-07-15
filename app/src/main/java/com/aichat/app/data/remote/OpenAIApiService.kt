@@ -65,7 +65,10 @@ data class ChatRequest(
     val messages: List<ChatMessage>,
     val temperature: Float = 0.7f,
     val max_tokens: Int = 4096,
-    val stream: Boolean = false
+    val stream: Boolean = false,
+    val tools: List<Map<String, Any?>>? = null,
+    val tool_choice: String? = null,  // "auto" | "none" | "required"
+    val parallel_tool_calls: Boolean? = null
 )
 
 data class ImageGenerationRequest(
@@ -78,7 +81,8 @@ data class ImageGenerationRequest(
 
 data class ChatMessage(
     val role: String,
-    val content: Any
+    val content: Any,
+    val tool_call_id: String? = null
 )
 
 data class ContentPart(
@@ -94,7 +98,14 @@ data class ImageUrlData(
 data class ChatCompletionResponse(
     val id: String? = null,
     val choices: List<Choice>? = null,
-    val error: ApiError? = null
+    val error: ApiError? = null,
+    val usage: Usage? = null
+)
+
+data class Usage(
+    val prompt_tokens: Int = 0,
+    val completion_tokens: Int = 0,
+    val total_tokens: Int = 0
 )
 
 data class Choice(
@@ -106,8 +117,20 @@ data class Choice(
 
 data class ResponseMessage(
     val role: String,
-    val content: String,
-    val reasoning_content: String? = null
+    val content: String? = null,
+    val reasoning_content: String? = null,
+    val tool_calls: List<ToolCallData>? = null
+)
+
+data class ToolCallData(
+    val id: String,
+    val type: String = "function",
+    val function: ToolCallFunction
+)
+
+data class ToolCallFunction(
+    val name: String,
+    val arguments: String
 )
 
 data class DeltaMessage(

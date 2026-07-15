@@ -8,9 +8,11 @@ import com.aichat.app.data.model.ApiEndpoint
 import com.aichat.app.data.model.Message
 import com.aichat.app.data.remote.ApiManager
 import com.aichat.app.data.repository.ChatRepository
+import com.aichat.app.memory.AutoMemoryExtractor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlin.jvm.Volatile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,7 @@ import javax.inject.Inject
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
     private val apiManager: ApiManager,
+    private val autoMemoryExtractor: AutoMemoryExtractor,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -72,7 +75,7 @@ class ChatViewModel @Inject constructor(
     val currentAgentName: StateFlow<String?> = _currentAgentName.asStateFlow()
 
     private var currentStreamJob: Job? = null
-    private var streamCall: Call<ResponseBody>? = null
+    @Volatile private var streamCall: Call<ResponseBody>? = null
 
     init {
         initializeAgents()
@@ -187,7 +190,14 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage(text: String, imageUris: List<String> = emptyList()) {
         if (text.isBlank() && imageUris.isEmpty()) return
-        if (_isLoading.value || _isGeneratingImage.value) return
+
+        // 并发保护：正在生成或加载时忽略重复请求
+        if (_isLoading.value || _isGeneratingImage.value) {
+            Log.d("ChatViewModel", "Already sending, ignoring duplicate request")
+            return
+        }
+        // 先取消之前的请求，清理残留状态
+        stopGeneration()
 
         // 检测图片生成命令 /img
         if (text.startsWith("/img ")) {
@@ -199,7 +209,7 @@ class ChatViewModel @Inject constructor(
         _error.value = null
         val model = _currentModel.value
 
-        viewModelScope.launch {
+        currentStreamJob = viewModelScope.launch {
             repository.addUserMessage(conversationId, text, imageUris)
             val assistantIndex = repository.addAssistantMessage(conversationId, "", isStreaming = true)
 
@@ -243,6 +253,14 @@ class ChatViewModel @Inject constructor(
                     _isLoading.value = false
                 }
             }
+
+            val currentMessages = _messages.value
+            if (currentMessages.isNotEmpty()) {
+                autoMemoryExtractor.extractFromConversation(
+                    conversationId = conversationId,
+                    messages = currentMessages
+                )
+            }
         }
     }
 
@@ -263,7 +281,7 @@ class ChatViewModel @Inject constructor(
                         prompt = prompt,
                         n = _imageCount.value,
                         size = _imageSize.value,
-                        model = _currentModel.value
+                        model = _imageModel.value
                     )
                     result.onSuccess { urls ->
                         repository.updateAssistantMessage(
@@ -310,7 +328,7 @@ class ChatViewModel @Inject constructor(
                         prompt = prompt,
                         n = _imageCount.value,
                         size = _imageSize.value,
-                        model = _currentModel.value
+                        model = _imageModel.value
                     )
                     result.onSuccess { urls ->
                         repository.updateAssistantMessage(
@@ -489,5 +507,7 @@ class ChatViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopGeneration()
+        currentStreamJob = null
+        streamCall = null
     }
 }

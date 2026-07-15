@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aichat.app.data.model.McpServer
+import com.aichat.app.ui.components.EmptyStateView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,21 +56,17 @@ fun McpScreen(
     val testing by viewModel.testing.collectAsStateWithLifecycle()
     var showAdd by remember { mutableStateOf(false) }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAdd = true }) {
-                Icon(Icons.Default.Add, contentDescription = "新增 MCP 服务器")
-            }
-        }
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         if (servers.isEmpty()) {
-            EmptyState(Modifier.padding(innerPadding))
+            EmptyStateView(
+                icon = Icons.Default.Hub,
+                title = "还没有 MCP 服务器",
+                subtitle = "添加 MCP 服务器以接入外部工具与数据源"
+            )
         } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -86,6 +81,15 @@ fun McpScreen(
                 }
             }
         }
+
+        FloatingActionButton(
+            onClick = { showAdd = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "新增 MCP 服务器")
+        }
     }
 
     if (showAdd) {
@@ -96,23 +100,6 @@ fun McpScreen(
                 showAdd = false
             }
         )
-    }
-}
-
-@Composable
-private fun EmptyState(modifier: Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Hub, contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-            Spacer(Modifier.height(12.dp))
-            Text("还没有 MCP 服务器", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("添加 MCP 服务器以接入外部工具与数据源",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-        }
     }
 }
 

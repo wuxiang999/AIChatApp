@@ -261,7 +261,11 @@ class ChatRepository @Inject constructor(
 
     private suspend fun autoGenerateTitle(conversationId: String, firstMessage: String) {
         val title = if (firstMessage.length > 20) {
-            firstMessage.substring(0, 20) + "..."
+            val truncated = firstMessage.take(20)
+            // 确保不截断 UTF-16 代理对（如 emoji）
+            val safeTitle = if (truncated.isNotEmpty() && Character.isHighSurrogate(truncated.last()))
+                truncated.dropLast(1) else truncated
+            "$safeTitle..."
         } else {
             firstMessage
         }
@@ -275,25 +279,10 @@ class ChatRepository @Inject constructor(
         model: String = "gpt-3.5-turbo"
     ): Call<ResponseBody> {
         val historyMessages = getMessagesList(conversationId)
-
-        val displayContent = if (imageUris.isNotEmpty()) {
-            "$currentMessage\n[图片 x${imageUris.size}]"
-        } else currentMessage
-
-        val userMessage = Message(
-            conversationId = conversationId,
-            index = (historyMessages.lastOrNull()?.index ?: -1) + 1,
-            role = "user",
-            content = displayContent,
-            timestamp = Date(),
-            imageUris = imageUris.joinToString(",")
-        )
-
-        val allMessages = historyMessages + userMessage
-        val chatMessages = buildChatMessages(allMessages)
+        val chatMessages = buildChatMessages(historyMessages, currentMessage)
 
         Log.d("ChatRepository", "Sending ${chatMessages.size} messages to API, model: $model")
-        terminal.info(TAG, "发送请求 -> 模型=$model, 消息数=${chatMessages.size}")
+        terminal.network(TAG, "发送请求 -> 模型=$model, 消息数=${chatMessages.size}")
 
         val request = ChatRequest(
             model = model,
@@ -316,7 +305,11 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    private suspend fun buildContextBlock(): String {
+    /**
+     * Build context block with memory, skills (with {{input}} replaced), and MCP servers.
+     * @param userInput The current user message for {{input}} placeholder replacement
+     */
+    private suspend fun buildContextBlock(userInput: String = ""): String {
         val parts = mutableListOf<String>()
 
         // 记忆系统：长期记忆
@@ -326,23 +319,32 @@ class ChatRepository @Inject constructor(
                 append("【长期记忆】以下是关于用户的长期记忆，请在回复时参考：\n")
                 memories.forEach { append("- ").append(it.content).append("\n") }
             }
-            terminal.info(TAG, "注入记忆 ${memories.size} 条")
+            terminal.memory(TAG, "注入记忆 ${memories.size} 条")
         }
 
-        // 技能系统：可用技能清单
+        // 技能系统：完整注入 + {{input}} 替换
         val skills = skillsRepository.getEnabledSkills()
         if (skills.isNotEmpty()) {
             parts += buildString {
-                append("【可用技能】以下是可调用的技能，请根据用户意图选用并展开对应提示词：\n")
+                append("【可用技能】以下是已启用的技能，请根据用户意图选用：\n")
                 skills.forEach { s ->
-                    append("- ").append(s.name).append("：").append(s.description)
+                    appendLine()
+                    append("### 技能: ${s.name}")
+                    appendLine()
+                    appendLine(s.description)
                     if (s.promptTemplate.isNotBlank()) {
-                        append("（模板：").append(s.promptTemplate.take(80)).append("…）")
+                        // 替换 {{input}} 占位符为用户输入
+                        val expanded = s.promptTemplate
+                            .replace("{{input}}", userInput.ifEmpty { "{用户输入}" })
+                            .replace("{{userInput}}", userInput.ifEmpty { "{用户输入}" })
+                        appendLine("激活方式: 请执行以下指令：")
+                        appendLine(expanded)
                     }
-                    append("\n")
+                    appendLine()
                 }
             }
-            terminal.info(TAG, "注入技能 ${skills.size} 个")
+            terminal.info(TAG, "注入技能 ${skills.size} 个 (含{{input}}替换)")
+            terminal.memory(TAG, "注入技能模板 ${skills.size} 个")
         }
 
         // MCP 系统：外部资源
@@ -354,13 +356,13 @@ class ChatRepository @Inject constructor(
                     append("- ").append(srv.name).append("（").append(srv.url).append("）\n")
                 }
             }
-            terminal.info(TAG, "注入 MCP 服务器 ${servers.size} 个")
+            terminal.memory(TAG, "注入 MCP 服务器 ${servers.size} 个")
         }
 
         return parts.joinToString("\n").trim()
     }
 
-    private suspend fun buildChatMessages(messages: List<Message>): List<ChatMessage> {
+    private suspend fun buildChatMessages(messages: List<Message>, userInput: String = ""): List<ChatMessage> {
         val result = mutableListOf<ChatMessage>()
 
         val selectedAgent = getSelectedAgent()
@@ -371,16 +373,17 @@ class ChatRepository @Inject constructor(
             Log.d("ChatRepository", "No agent selected or no messages, system prompt skipped")
         }
 
-        // 注入记忆 / 技能 / MCP 外部资源上下文
-        val contextBlock = buildContextBlock()
+        // 注入记忆 / 技能 / MCP 外部资源上下文（带上用户输入用于 {{input}} 替换）
+        val contextBlock = buildContextBlock(userInput)
         if (contextBlock.isNotBlank()) {
             result.add(ChatMessage(role = "system", content = contextBlock))
         }
 
-        val limitedMessages = if (messages.size > maxHistoryMessages) {
-            messages.takeLast(maxHistoryMessages)
+        val filteredMessages = messages.filter { !it.isRevoked }
+        val limitedMessages = if (filteredMessages.size > maxHistoryMessages) {
+            filteredMessages.takeLast(maxHistoryMessages)
         } else {
-            messages
+            filteredMessages
         }
 
         result.addAll(limitedMessages.map { msg ->
@@ -457,15 +460,19 @@ class ChatRepository @Inject constructor(
                 )
 
                 if (response.error != null) {
+                    terminal.error(TAG, "图片生成失败: ${response.error.message}")
                     Result.failure(Exception(response.error.message))
                 } else {
                     val urls = response.data?.mapNotNull { data ->
                         data.url ?: data.b64_json?.let { "data:image/png;base64,$it" }
                     } ?: emptyList()
+                    terminal.toolCall(TAG, "generate_image", "prompt=${prompt.take(80)}, size=$size, model=$model")
+                    terminal.success(TAG, "生成图片 ${urls.size} 张")
                     Result.success(urls)
                 }
             } catch (e: Exception) {
                 Log.e("ChatRepository", "generateImage error", e)
+                terminal.error(TAG, "图片生成异常: ${e.message}")
                 Result.failure(e)
             }
         }

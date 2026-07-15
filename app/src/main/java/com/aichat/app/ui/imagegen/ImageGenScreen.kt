@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -30,9 +29,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,7 +39,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -75,272 +71,259 @@ fun ImageGenScreen(
     var expandedQuality by remember { mutableStateOf(false) }
     var expandedModel by remember { mutableStateOf(false) }
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
-            androidx.compose.material3.TopAppBar(
-                title = { Text("图片生成") },
-                scrollBehavior = scrollBehavior
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedTextField(
+            value = prompt,
+            onValueChange = { prompt = it },
+            label = { Text("描述你想生成的图片") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 5,
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                value = prompt,
-                onValueChange = { prompt = it },
-                label = { Text("描述你想生成的图片") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 5,
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ExposedDropdownMenuBox(
+                expanded = expandedModel,
+                onExpandedChange = { expandedModel = !expandedModel },
+                modifier = Modifier.weight(1f)
             ) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedModel,
-                    onExpandedChange = { expandedModel = !expandedModel },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = model,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("模型") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModel)
-                        },
-                        modifier = Modifier.menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = expandedModel,
-                        onDismissRequest = { expandedModel = false }
-                    ) {
-                        models.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text(m) },
-                                onClick = {
-                                    model = m
-                                    expandedModel = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                ExposedDropdownMenuBox(
-                    expanded = expandedSize,
-                    onExpandedChange = { expandedSize = !expandedSize },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = size,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("尺寸") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSize)
-                        },
-                        modifier = Modifier.menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = expandedSize,
-                        onDismissRequest = { expandedSize = false }
-                    ) {
-                        sizes.forEach { s ->
-                            DropdownMenuItem(
-                                text = { Text(s) },
-                                onClick = {
-                                    size = s
-                                    expandedSize = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedCount,
-                    onExpandedChange = { expandedCount = !expandedCount },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = "$count 张",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("数量") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCount)
-                        },
-                        modifier = Modifier.menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = expandedCount,
-                        onDismissRequest = { expandedCount = false }
-                    ) {
-                        counts.forEach { c ->
-                            DropdownMenuItem(
-                                text = { Text("$c 张") },
-                                onClick = {
-                                    count = c
-                                    expandedCount = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                ExposedDropdownMenuBox(
-                    expanded = expandedQuality,
-                    onExpandedChange = { expandedQuality = !expandedQuality },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    OutlinedTextField(
-                        value = if (quality == "hd") "高清" else "标准",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("质量") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedQuality)
-                        },
-                        modifier = Modifier.menuAnchor(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = expandedQuality,
-                        onDismissRequest = { expandedQuality = false }
-                    ) {
-                        qualities.forEach { q ->
-                            DropdownMenuItem(
-                                text = { Text(if (q == "hd") "高清" else "标准") },
-                                onClick = {
-                                    quality = q
-                                    expandedQuality = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        viewModel.generateImage(
-                            prompt = prompt,
-                            n = count,
-                            size = size,
-                            model = model,
-                            quality = if (quality == "hd") "hd" else null
-                        )
-                    }
-                },
-                enabled = prompt.isNotBlank() && !isGenerating,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                if (isGenerating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("生成中...")
-                } else {
-                    Icon(Icons.Default.Image, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("生成图片")
-                }
-            }
-
-            error?.let { err ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = err,
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-
-            if (generatedImages.isNotEmpty()) {
-                Text(
-                    text = "生成结果 (${generatedImages.size} 张)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                OutlinedTextField(
+                    value = model,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("模型") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedModel)
+                    },
+                    modifier = Modifier.menuAnchor(),
+                    shape = RoundedCornerShape(12.dp)
                 )
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth().weight(1f)
+                DropdownMenu(
+                    expanded = expandedModel,
+                    onDismissRequest = { expandedModel = false }
                 ) {
-                    items(generatedImages) { imageUrl ->
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.aspectRatio(1f)
-                        ) {
-                            AsyncImage(
-                                model = imageUrl,
-                                contentDescription = "生成的图片",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                            )
-                        }
+                    models.forEach { m ->
+                        DropdownMenuItem(
+                            text = { Text(m) },
+                            onClick = {
+                                model = m
+                                expandedModel = false
+                            }
+                        )
                     }
                 }
             }
 
-            if (generatedImages.isEmpty() && !isGenerating && prompt.isBlank()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
+            ExposedDropdownMenuBox(
+                expanded = expandedSize,
+                onExpandedChange = { expandedSize = !expandedSize },
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = size,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("尺寸") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSize)
+                    },
+                    modifier = Modifier.menuAnchor(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                DropdownMenu(
+                    expanded = expandedSize,
+                    onDismissRequest = { expandedSize = false }
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "输入描述开始生成",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    sizes.forEach { s ->
+                        DropdownMenuItem(
+                            text = { Text(s) },
+                            onClick = {
+                                size = s
+                                expandedSize = false
+                            }
                         )
                     }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ExposedDropdownMenuBox(
+                expanded = expandedCount,
+                onExpandedChange = { expandedCount = !expandedCount },
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = "$count 张",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("数量") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCount)
+                    },
+                    modifier = Modifier.menuAnchor(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                DropdownMenu(
+                    expanded = expandedCount,
+                    onDismissRequest = { expandedCount = false }
+                ) {
+                    counts.forEach { c ->
+                        DropdownMenuItem(
+                            text = { Text("$c 张") },
+                            onClick = {
+                                count = c
+                                expandedCount = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            ExposedDropdownMenuBox(
+                expanded = expandedQuality,
+                onExpandedChange = { expandedQuality = !expandedQuality },
+                modifier = Modifier.weight(1f)
+            ) {
+                OutlinedTextField(
+                    value = if (quality == "hd") "高清" else "标准",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("质量") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedQuality)
+                    },
+                    modifier = Modifier.menuAnchor(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                DropdownMenu(
+                    expanded = expandedQuality,
+                    onDismissRequest = { expandedQuality = false }
+                ) {
+                    qualities.forEach { q ->
+                        DropdownMenuItem(
+                            text = { Text(if (q == "hd") "高清" else "标准") },
+                            onClick = {
+                                quality = q
+                                expandedQuality = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                scope.launch {
+                    viewModel.generateImage(
+                        prompt = prompt,
+                        n = count,
+                        size = size,
+                        model = model,
+                        quality = if (quality == "hd") "hd" else null
+                    )
+                }
+            },
+            enabled = prompt.isNotBlank() && !isGenerating,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            if (isGenerating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("生成中...")
+            } else {
+                Icon(Icons.Default.Image, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("生成图片")
+            }
+        }
+
+        error?.let { err ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Text(
+                    text = err,
+                    modifier = Modifier.padding(12.dp),
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+
+        if (generatedImages.isNotEmpty()) {
+            Text(
+                text = "生成结果 (${generatedImages.size} 张)",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                items(generatedImages) { imageUrl ->
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.aspectRatio(1f)
+                    ) {
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = "生成的图片",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                }
+            }
+        }
+
+        if (generatedImages.isEmpty() && !isGenerating && prompt.isBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "输入描述开始生成",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

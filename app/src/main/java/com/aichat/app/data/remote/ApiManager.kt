@@ -44,9 +44,12 @@ class ApiManager @Inject constructor(
             val defaultEndpoint = ApiEndpoint(
                 name = "wsocket",
                 url = "https://ai.wsocket.xyz/v1",
-                apiKey = "sk-7Nb8FwAmO5zvmEzwkHlBXWX5RaDycdkPAmeKZqT2Ql5cDEQQ",
+                apiKey = "",
                 isSelected = true
             )
+            if (defaultEndpoint.apiKey.isBlank()) {
+                Log.w("ApiManager", "默认 API Key 为空，请前往设置页面配置您的 API Key")
+            }
             val generatedId = apiEndpointDao.insertEndpoint(defaultEndpoint)
             // 使用数据库返回的真实 id，避免内存对象 id=0 与数据库 id 不一致
             val inserted = defaultEndpoint.copy(id = generatedId)

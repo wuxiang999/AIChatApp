@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,18 +16,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,16 +40,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,19 +61,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.aichat.app.BuildConfig
 import com.aichat.app.data.model.ApiEndpoint
+import com.aichat.app.ui.components.EmptyStateView
+import com.aichat.app.ui.components.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val endpoints by viewModel.endpoints.collectAsStateWithLifecycle()
     val currentEndpoint by viewModel.currentEndpoint.collectAsStateWithLifecycle()
     val models by viewModel.models.collectAsStateWithLifecycle()
@@ -82,37 +92,59 @@ fun SettingsScreen(
     var newEndpointUrl by remember { mutableStateOf("") }
     var newEndpointKey by remember { mutableStateOf("") }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    newEndpointName = ""
-                    newEndpointUrl = ""
-                    newEndpointKey = ""
-                    showAddDialog = true
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = "添加") },
-                text = { Text("添加端点") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item { CurrentEndpointCard(currentEndpoint, onLoadModels = { viewModel.loadModels() }) }
 
+            // === Workspace Settings ===
+            item { SectionHeader("工作区设置", icon = Icons.Default.FolderOpen) }
+            item {
+                WorkspaceSettingsCard(
+                    workspacePath = settings.workspacePath,
+                    autoSaveEnabled = settings.autoSaveEnabled,
+                    autoSaveInterval = settings.autoSaveInterval,
+                    onWorkspacePathChange = { viewModel.updateWorkspacePath(it) },
+                    onAutoSaveEnabledChange = { viewModel.updateAutoSaveEnabled(it) },
+                    onAutoSaveIntervalChange = { viewModel.updateAutoSaveInterval(it) }
+                )
+            }
+
+            // === Editor Settings ===
+            item { SectionHeader("编辑器设置", icon = Icons.Default.Code) }
+            item {
+                EditorSettingsCard(
+                    fontSize = settings.fontSize,
+                    editorTheme = settings.editorTheme,
+                    showLineNumbers = settings.showLineNumbers,
+                    tabSize = settings.tabSize,
+                    onFontSizeChange = { viewModel.updateFontSize(it) },
+                    onEditorThemeChange = { viewModel.updateEditorTheme(it) },
+                    onShowLineNumbersChange = { viewModel.updateShowLineNumbers(it) },
+                    onTabSizeChange = { viewModel.updateTabSize(it) }
+                )
+            }
+
+            // === API Endpoints ===
             item { SectionHeader("API 端点管理", icon = Icons.Default.Cloud) }
 
             if (endpoints.isEmpty()) {
                 item {
-                    EmptyStateBox("暂无端点，请点击右下角添加")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyStateView(
+                            icon = Icons.Default.Cloud,
+                            title = "暂无 API 端点",
+                            subtitle = "添加端点后即可连接到 AI 模型服务"
+                        )
+                    }
                 }
             } else {
                 items(endpoints, key = { it.id }) { endpoint ->
@@ -140,11 +172,60 @@ fun SettingsScreen(
             }
 
             item { SectionHeader("可用模型", icon = Icons.Default.Bolt) }
-
             item { AvailableModelsCard(models = models, isLoading = isLoadingModels) }
+
+            // === AI Agent Settings ===
+            item { SectionHeader("AI 代理设置", icon = Icons.Default.Psychology) }
+            item {
+                AgentSettingsCard(
+                    defaultCodingModel = settings.defaultCodingModel,
+                    maxIterations = settings.maxIterations,
+                    permissionPreset = settings.permissionPreset,
+                    autoExtractMemory = settings.autoExtractMemory,
+                    onDefaultCodingModelChange = { viewModel.updateDefaultCodingModel(it) },
+                    onMaxIterationsChange = { viewModel.updateMaxIterations(it) },
+                    onPermissionPresetChange = { viewModel.updatePermissionPreset(it) },
+                    onAutoExtractMemoryChange = { viewModel.updateAutoExtractMemory(it) }
+                )
+            }
+
+            // === Git Settings ===
+            item { SectionHeader("Git 集成", icon = Icons.Default.AccountTree) }
+            item {
+                GitSettingsCard(
+                    gitEnabled = settings.gitEnabled,
+                    gitAutoCommit = settings.gitAutoCommit,
+                    gitUserName = settings.gitUserName,
+                    gitUserEmail = settings.gitUserEmail,
+                    onGitEnabledChange = { viewModel.updateGitEnabled(it) },
+                    onGitAutoCommitChange = { viewModel.updateGitAutoCommit(it) },
+                    onGitUserNameChange = { viewModel.updateGitUserName(it) },
+                    onGitUserEmailChange = { viewModel.updateGitUserEmail(it) }
+                )
+            }
+
+            // === About ===
+            item { SectionHeader("关于", icon = Icons.Default.Info) }
+            item { AboutCard() }
 
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+
+        ExtendedFloatingActionButton(
+            onClick = {
+                newEndpointName = ""
+                newEndpointUrl = ""
+                newEndpointKey = ""
+                showAddDialog = true
+            },
+            icon = { Icon(Icons.Default.Add, contentDescription = "添加") },
+            text = { Text("添加端点") },
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
     }
 
     if (showAddDialog) {
@@ -186,46 +267,395 @@ fun SettingsScreen(
     }
 }
 
+// ===== New Section Cards =====
+
 @Composable
-private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(width = 4.dp, height = 18.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.primary)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+private fun WorkspaceSettingsCard(
+    workspacePath: String,
+    autoSaveEnabled: Boolean,
+    autoSaveInterval: Int,
+    onWorkspacePathChange: (String) -> Unit,
+    onAutoSaveEnabledChange: (Boolean) -> Unit,
+    onAutoSaveIntervalChange: (Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            OutlinedTextField(
+                value = workspacePath,
+                onValueChange = onWorkspacePathChange,
+                label = { Text("默认项目路径") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("自动保存", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "自动保存工作区更改",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = autoSaveEnabled, onCheckedChange = onAutoSaveEnabledChange)
+            }
+
+            if (autoSaveEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("保存间隔", style = MaterialTheme.typography.bodyMedium)
+                    Slider(
+                        value = autoSaveInterval.toFloat(),
+                        onValueChange = { onAutoSaveIntervalChange(it.toInt().coerceIn(10, 120)) },
+                        valueRange = 10f..120f,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
+                    )
+                    Text(
+                        "${autoSaveInterval}秒",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.width(36.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun EmptyStateBox(text: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        contentAlignment = Alignment.Center
+private fun EditorSettingsCard(
+    fontSize: Int,
+    editorTheme: String,
+    showLineNumbers: Boolean,
+    tabSize: Int,
+    onFontSizeChange: (Int) -> Unit,
+    onEditorThemeChange: (String) -> Unit,
+    onShowLineNumbersChange: (Boolean) -> Unit,
+    onTabSizeChange: (Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("字体大小", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text("${fontSize}px", style = MaterialTheme.typography.labelSmall)
+            }
+            Slider(
+                value = fontSize.toFloat(),
+                onValueChange = { onFontSizeChange(it.toInt().coerceIn(12, 24)) },
+                valueRange = 12f..24f,
+                steps = 11
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("主题", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                FilterChip(
+                    selected = editorTheme == "dark",
+                    onClick = { onEditorThemeChange("dark") },
+                    label = { Text("深色", style = MaterialTheme.typography.labelSmall) }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                FilterChip(
+                    selected = editorTheme == "light",
+                    onClick = { onEditorThemeChange("light") },
+                    label = { Text("浅色", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("显示行号", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Switch(checked = showLineNumbers, onCheckedChange = onShowLineNumbersChange)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Tab 大小", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Slider(
+                    value = tabSize.toFloat(),
+                    onValueChange = { onTabSizeChange(it.toInt().coerceIn(2, 8)) },
+                    valueRange = 2f..8f,
+                    steps = 5,
+                    modifier = Modifier.width(120.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("${tabSize}", style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AgentSettingsCard(
+    defaultCodingModel: String,
+    maxIterations: Int,
+    permissionPreset: String,
+    autoExtractMemory: Boolean,
+    onDefaultCodingModelChange: (String) -> Unit,
+    onMaxIterationsChange: (Int) -> Unit,
+    onPermissionPresetChange: (String) -> Unit,
+    onAutoExtractMemoryChange: (Boolean) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            OutlinedTextField(
+                value = defaultCodingModel,
+                onValueChange = onDefaultCodingModelChange,
+                label = { Text("默认编码模型") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("最大迭代次数", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text("${maxIterations}", style = MaterialTheme.typography.labelSmall)
+            }
+            Slider(
+                value = maxIterations.toFloat(),
+                onValueChange = { onMaxIterationsChange(it.toInt().coerceIn(1, 50)) },
+                valueRange = 1f..50f,
+                steps = 48
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text("权限预设", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(
+                    "strict" to "严格",
+                    "balanced" to "平衡",
+                    "relaxed" to "宽松"
+                ).forEach { (value, label) ->
+                    FilterChip(
+                        selected = permissionPreset == value,
+                        onClick = { onPermissionPresetChange(value) },
+                        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = when (permissionPreset) {
+                    "strict" -> "所有操作执行前需用户确认"
+                    "balanced" -> "常规操作自动执行，敏感操作需确认"
+                    "relaxed" -> "自动执行所有操作，适合受信任环境"
+                    else -> ""
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("自动记忆提取", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "自动从对话中提取关键信息",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = autoExtractMemory, onCheckedChange = onAutoExtractMemoryChange)
+            }
+        }
+    }
+}
+
+@Composable
+private fun GitSettingsCard(
+    gitEnabled: Boolean,
+    gitAutoCommit: Boolean,
+    gitUserName: String,
+    gitUserEmail: String,
+    onGitEnabledChange: (Boolean) -> Unit,
+    onGitAutoCommitChange: (Boolean) -> Unit,
+    onGitUserNameChange: (String) -> Unit,
+    onGitUserEmailChange: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("启用 Git", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "在工作区中集成 Git 版本控制",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(checked = gitEnabled, onCheckedChange = onGitEnabledChange)
+            }
+
+            if (gitEnabled) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("自动提交", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "修改后自动创建 Git 提交",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = gitAutoCommit, onCheckedChange = onGitAutoCommitChange)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = gitUserName,
+                    onValueChange = onGitUserNameChange,
+                    label = { Text("Git 用户名") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = gitUserEmail,
+                    onValueChange = onGitUserEmailChange,
+                    label = { Text("Git 邮箱") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutCard() {
+    val uriHandler = LocalUriHandler.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            AboutRow(label = "版本", value = BuildConfig.VERSION_NAME)
+            Spacer(modifier = Modifier.height(10.dp))
+            AboutRow(label = "构建", value = BuildConfig.VERSION_CODE.toString())
+            Spacer(modifier = Modifier.height(10.dp))
+            AboutRow(label = "开源许可", value = "MIT")
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "GitHub",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "github.com/aichat",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.clickable {
+                        uriHandler.openUri("https://github.com/aichat")
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = text,
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
         )
     }
 }
+
+// ===== Existing Composable Functions (preserved) =====
 
 @Composable
 private fun CurrentEndpointCard(
@@ -301,7 +731,7 @@ private fun CurrentEndpointCard(
             Button(
                 onClick = onLoadModels,
                 shape = RoundedCornerShape(10.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -429,14 +859,14 @@ fun EndpointItem(
                 Spacer(modifier = Modifier.height(8.dp))
                 result.onSuccess { count ->
                     ResultCard(
-                        text = "✓ 连接成功，$count 个模型",
+                        text = "连接成功，$count 个模型",
                         container = MaterialTheme.colorScheme.tertiaryContainer,
                         content = MaterialTheme.colorScheme.onTertiaryContainer
                     )
                 }
                 result.onFailure { error ->
                     ResultCard(
-                        text = "✗ ${error.message}",
+                        text = "${error.message}",
                         container = MaterialTheme.colorScheme.errorContainer,
                         content = MaterialTheme.colorScheme.onErrorContainer
                     )

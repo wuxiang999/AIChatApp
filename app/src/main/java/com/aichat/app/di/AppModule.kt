@@ -29,7 +29,8 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "aichat_database"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8)
+            .fallbackToDestructiveMigration().build()
     }
 
     @Provides

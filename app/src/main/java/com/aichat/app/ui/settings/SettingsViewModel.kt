@@ -2,7 +2,9 @@ package com.aichat.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aichat.app.data.local.SettingsDataStore
 import com.aichat.app.data.model.ApiEndpoint
+import com.aichat.app.data.model.AppSettings
 import com.aichat.app.data.remote.ApiManager
 import com.aichat.app.data.repository.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,8 +18,11 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val apiManager: ApiManager,
-    private val repository: ChatRepository
+    private val repository: ChatRepository,
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
+
+    // --- API Endpoint State ---
 
     private val _endpoints = MutableStateFlow<List<ApiEndpoint>>(emptyList())
     val endpoints: StateFlow<List<ApiEndpoint>> = _endpoints.asStateFlow()
@@ -34,7 +39,6 @@ class SettingsViewModel @Inject constructor(
     private val _testResult = MutableStateFlow<Result<Int>?>(null)
     val testResult: StateFlow<Result<Int>?> = _testResult.asStateFlow()
 
-    // 每个端点的独立状态
     private val _endpointTestResults = MutableStateFlow<Map<Long, Result<Int>>>(emptyMap())
     val endpointTestResults: StateFlow<Map<Long, Result<Int>>> = _endpointTestResults.asStateFlow()
 
@@ -44,10 +48,26 @@ class SettingsViewModel @Inject constructor(
     private val _loadingEndpoints = MutableStateFlow<Set<Long>>(emptySet())
     val loadingEndpoints: StateFlow<Set<Long>> = _loadingEndpoints.asStateFlow()
 
+    // --- Settings State ---
+
+    private val _settings = MutableStateFlow(AppSettings())
+    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+
     init {
         loadEndpoints()
         loadCurrentEndpoint()
+        loadSettings()
     }
+
+    private fun loadSettings() {
+        viewModelScope.launch {
+            settingsDataStore.settingsFlow.collect { s ->
+                _settings.value = s
+            }
+        }
+    }
+
+    // --- Endpoint Methods ---
 
     private fun loadEndpoints() {
         viewModelScope.launch {
@@ -104,7 +124,6 @@ class SettingsViewModel @Inject constructor(
             try {
                 val result = apiManager.testEndpoint(endpoint.url, endpoint.apiKey)
                 val models = if (result.isSuccess) {
-                    // 临时切换到这个端点获取模型
                     apiManager.getApiServiceForEndpoint(endpoint.url, endpoint.apiKey)
                         .getModels("Bearer ${endpoint.apiKey}")
                         .data.map { it.id }.sorted()
@@ -191,5 +210,67 @@ class SettingsViewModel @Inject constructor(
         val current = _endpointTestResults.value.toMutableMap()
         current.remove(endpointId)
         _endpointTestResults.value = current
+    }
+
+    // --- Settings Update Methods ---
+
+    fun updateWorkspacePath(path: String) {
+        viewModelScope.launch { settingsDataStore.updateWorkspacePath(path) }
+    }
+
+    fun updateAutoSaveEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.updateAutoSaveEnabled(enabled) }
+    }
+
+    fun updateAutoSaveInterval(interval: Int) {
+        viewModelScope.launch { settingsDataStore.updateAutoSaveInterval(interval) }
+    }
+
+    fun updateFontSize(size: Int) {
+        viewModelScope.launch { settingsDataStore.updateFontSize(size) }
+    }
+
+    fun updateEditorTheme(theme: String) {
+        viewModelScope.launch { settingsDataStore.updateEditorTheme(theme) }
+    }
+
+    fun updateShowLineNumbers(show: Boolean) {
+        viewModelScope.launch { settingsDataStore.updateShowLineNumbers(show) }
+    }
+
+    fun updateTabSize(size: Int) {
+        viewModelScope.launch { settingsDataStore.updateTabSize(size) }
+    }
+
+    fun updateDefaultCodingModel(model: String) {
+        viewModelScope.launch { settingsDataStore.updateDefaultCodingModel(model) }
+    }
+
+    fun updateMaxIterations(iterations: Int) {
+        viewModelScope.launch { settingsDataStore.updateMaxIterations(iterations) }
+    }
+
+    fun updatePermissionPreset(preset: String) {
+        viewModelScope.launch { settingsDataStore.updatePermissionPreset(preset) }
+    }
+
+    fun updateAutoExtractMemory(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.updateAutoExtractMemory(enabled) }
+    }
+
+    fun updateGitEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.updateGitEnabled(enabled) }
+    }
+
+    fun updateGitAutoCommit(enabled: Boolean) {
+        viewModelScope.launch { settingsDataStore.updateGitAutoCommit(enabled) }
+    }
+
+    fun updateGitUserName(name: String) {
+        viewModelScope.launch { settingsDataStore.updateGitUserName(name) }
+    }
+
+    fun updateGitUserEmail(email: String) {
+        viewModelScope.launch { settingsDataStore.updateGitUserEmail(email) }
     }
 }
