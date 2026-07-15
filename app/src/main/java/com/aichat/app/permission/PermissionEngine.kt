@@ -3,6 +3,7 @@ package com.aichat.app.permission
 import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+
 /**
  * Three-level permission system for tool access control.
  *
@@ -48,25 +49,25 @@ class PermissionEngine @Inject constructor() {
     /**
      * Register permission rules. Rules added later have higher priority.
      */
-    @Synchronized
     fun configure(rules: List<PermissionRule>) {
-        this.rules.clear()
-        this.rules.addAll(rules)
+        synchronized(this) {
+            this.rules.clear()
+            this.rules.addAll(rules)
+        }
         Log.d(TAG, "Configured with ${rules.size} rules")
     }
 
     /**
      * Evaluate a tool action against the permission rules.
      */
-    @Synchronized
     fun evaluate(action: String, resource: String, context: String = ""): PermissionResult {
         // 1. Check saved choices first
-        val key = "$action:$resource"
-        val saved = savedChoices[key]
+        val savedKey = "$action:$resource"
+        val saved = savedChoices[savedKey]
         if (saved == PermissionEffect.ALLOW) return PermissionResult.Allowed
         if (saved == PermissionEffect.DENY) return PermissionResult.Denied("User previously denied")
 
-        // 2. Iterate rules in reverse (last wins)
+        // 2. Match rules (first matching rule wins)
         for (rule in rules) {
             if (!matchAction(rule.action, action)) continue
             if (!matchResource(rule.resource, resource)) continue
@@ -78,7 +79,7 @@ class PermissionEngine @Inject constructor() {
             }
         }
 
-        // 3. Default: ASK (safe default, inspired by OpenCode)
+        // 3. Default: ASK
         return PermissionResult.NeedsApproval(action, resource, context)
     }
 
@@ -86,9 +87,9 @@ class PermissionEngine @Inject constructor() {
      * Remember a user's choice for future executions.
      */
     fun remember(action: String, resource: String, effect: PermissionEffect) {
-        val key = "$action:$resource"
-        savedChoices[key] = effect
-        Log.d(TAG, "Saved permission choice: $key = $effect")
+        val memKey = "$action:$resource"
+        savedChoices[memKey] = effect
+        Log.d(TAG, "Saved permission choice: $memKey = $effect")
     }
 
     /**
