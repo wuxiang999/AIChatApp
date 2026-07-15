@@ -16,12 +16,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
@@ -61,18 +59,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
-import com.aichat.app.ui.navigation.AIChatNavHost
+import com.aichat.app.ui.navigation.CodeVibeNavHost
 import com.aichat.app.ui.navigation.Screen
 import kotlinx.coroutines.launch
 
-private data class DrawerEntry(
+data class DrawerSection(
+    val title: String,
+    val items: List<DrawerEntry>
+)
+
+data class DrawerEntry(
     val route: String,
     val label: String,
     val description: String,
     val icon: ImageVector
 )
 
-private data class BottomNavItem(
+data class BottomNavItem(
     val route: String,
     val label: String,
     val icon: ImageVector
@@ -87,25 +90,29 @@ fun AIChatApp() {
     val snackbarHostState = remember { SnackbarHostState() }
     var currentRoute by remember { mutableStateOf<String?>(Screen.ChatList.route) }
 
-    val drawerItems = remember {
+    val drawerSections = remember {
         listOf(
-            DrawerEntry(Screen.ChatList.route, "对话列表", "查看与管理历史会话", Icons.Filled.Chat),
-            DrawerEntry(Screen.Agents.route, "智能体", "选择预设角色或自定义", Icons.Filled.Person),
-            DrawerEntry(Screen.Memory.route, "记忆", "长期记忆，让AI记住你", Icons.Filled.Psychology),
-            DrawerEntry(Screen.Skills.route, "技能", "管理与注入可用技能", Icons.Filled.AutoAwesome),
-            DrawerEntry(Screen.Agent.route, "AI代理", "自主AI代理 · 代码生成", Icons.Filled.Code),
-            DrawerEntry(Screen.Mcp.route, "MCP", "外部工具与数据源", Icons.Filled.Hub),
-            DrawerEntry(Screen.ImageGen.route, "图片生成", "AI 文生图 / 图生图", Icons.Filled.Image),
-            DrawerEntry(Screen.Terminal.route, "终端", "实时日志与连接观测", Icons.Filled.Terminal),
-            DrawerEntry(Screen.Settings.route, "设置", "API 端点、模型与偏好", Icons.Filled.Settings)
+            DrawerSection("AI", listOf(
+                DrawerEntry(Screen.ChatList.route, "对话", "与 AI 助手交流", Icons.Filled.Chat),
+                DrawerEntry(Screen.Agent.route, "智能代理", "自主编程代理 · 工具调用", Icons.Filled.Code)
+            )),
+            DrawerSection("工具", listOf(
+                DrawerEntry(Screen.Terminal.route, "终端日志", "实时日志与连接观测", Icons.Filled.Terminal),
+                DrawerEntry(Screen.Memory.route, "记忆", "长期记忆 · 知识管理", Icons.Filled.Psychology),
+                DrawerEntry(Screen.ImageGen.route, "图片生成", "AI 文生图 / 图生图", Icons.Filled.Image)
+            )),
+            DrawerSection("系统", listOf(
+                DrawerEntry(Screen.Mcp.route, "MCP", "外部工具与数据源", Icons.Filled.Hub),
+                DrawerEntry(Screen.Settings.route, "设置", "API 端点 · 模型 · 偏好", Icons.Filled.Settings)
+            ))
         )
     }
 
     val bottomNavItems = remember {
         listOf(
             BottomNavItem(Screen.ChatList.route, "对话", Icons.Filled.Chat),
-            BottomNavItem(Screen.Agents.route, "智能体", Icons.Filled.Person),
-            BottomNavItem(Screen.Agent.route, "AI代理", Icons.Filled.Code),
+            BottomNavItem(Screen.Agent.route, "代理", Icons.Filled.Code),
+            BottomNavItem(Screen.Memory.route, "记忆", Icons.Filled.Psychology),
             BottomNavItem(Screen.Settings.route, "设置", Icons.Filled.Settings)
         )
     }
@@ -116,38 +123,30 @@ fun AIChatApp() {
         scope.launch { drawerState.close() }
         if (route == currentRoute) return
         navController.navigate(route) {
-            if (route == Screen.ChatList.route) {
-                popUpTo(Screen.ChatList.route) { inclusive = true }
-            } else {
-                popUpTo(Screen.ChatList.route) { inclusive = false }
-                launchSingleTop = true
-            }
+            popUpTo(Screen.ChatList.route) { inclusive = false }
+            launchSingleTop = true
         }
         currentRoute = route
     }
 
     val title = when (currentRoute) {
         Screen.Settings.route -> "设置"
-        Screen.Agents.route -> "智能体"
         Screen.Memory.route -> "记忆"
-        Screen.Skills.route -> "技能"
-        Screen.Mcp.route -> "MCP"
         Screen.ImageGen.route -> "图片生成"
-        Screen.Agent.route -> "AI代理"
-        Screen.Terminal.route -> "终端"
+        Screen.Agent.route -> "智能代理"
+        Screen.Terminal.route -> "终端日志"
+        Screen.Mcp.route -> "MCP"
         Screen.Chat.route -> "对话"
-        else -> "月下AI"
+        else -> "LH AI"
     }
 
     val subtitle = when (currentRoute) {
-        Screen.Settings.route -> "管理 API 端点与可用模型"
-        Screen.Agents.route -> "选择一个智能体开始对话"
-        Screen.Memory.route -> "长期记忆，让AI记住你"
-        Screen.Skills.route -> "管理与注入可用技能"
-        Screen.Mcp.route -> "外部工具与数据源"
+        Screen.Settings.route -> "API 端点 · 模型 · 偏好"
+        Screen.Memory.route -> "长期记忆 · 知识管理"
         Screen.ImageGen.route -> "AI 文生图 / 图生图"
-        Screen.Agent.route -> "自主编程 · 工具调用 · 生成代码"
+        Screen.Agent.route -> "自主编程 · 工具调用 · 代码生成"
         Screen.Terminal.route -> "实时日志与连接观测"
+        Screen.Mcp.route -> "外部工具与数据源"
         else -> null
     }
 
@@ -168,42 +167,54 @@ fun AIChatApp() {
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    drawerItems.forEach { entry ->
-                        NavigationDrawerItem(
-                            label = {
-                                Column {
-                                    Text(
-                                        text = entry.label,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = entry.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            selected = currentRoute == entry.route,
-                            onClick = { go(entry.route) },
-                            icon = {
-                                Icon(
-                                    imageVector = entry.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                                .fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-                                unselectedContainerColor = Color.Transparent,
-                                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurface
-                            )
+                    drawerSections.forEach { section ->
+                        Text(
+                            text = section.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                         )
+
+                        section.items.forEach { entry ->
+                            NavigationDrawerItem(
+                                label = {
+                                    Column {
+                                        Text(
+                                            text = entry.label,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = entry.description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                selected = currentRoute == entry.route,
+                                onClick = { go(entry.route) },
+                                icon = {
+                                    Icon(
+                                        imageVector = entry.icon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 2.dp)
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                    unselectedContainerColor = Color.Transparent,
+                                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -214,8 +225,8 @@ fun AIChatApp() {
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "月下AI · 本地客户端",
+            Text(
+                    text = "LH AI · v2.4.0",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             textAlign = TextAlign.Center
@@ -304,7 +315,7 @@ fun AIChatApp() {
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {
-                    AIChatNavHost(
+                    CodeVibeNavHost(
                         navController = navController,
                         snackbarHostState = snackbarHostState,
                         onRouteChange = { route -> currentRoute = route },
@@ -350,7 +361,7 @@ private fun DrawerHeader(onClose: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "月",
+                    text = "L",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontWeight = FontWeight.Bold
@@ -359,20 +370,20 @@ private fun DrawerHeader(onClose: () -> Unit) {
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "月下AI",
+                    text = "LH AI",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "本地AI聊天助手",
+                    text = "智能助手 · 对话编程",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             IconButton(onClick = onClose) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = androidx.compose.material.icons.filled.Close,
                     contentDescription = "关闭侧边栏",
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)

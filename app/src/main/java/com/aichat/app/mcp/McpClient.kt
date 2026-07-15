@@ -8,7 +8,7 @@ import com.aichat.app.agent.ToolResult
 import com.aichat.app.agent.ParameterSchema
 import com.aichat.app.agent.ParameterType
 import com.google.gson.Gson
-import com.google.gson.JsonParser
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -20,21 +20,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.json.JSONArray
+import org.json.JSONObject
 
-/**
- * MCP (Model Context Protocol) client for AIChatApp.
- *
- * Supports:
- * - Stdio transport (local subprocess)
- * - HTTP/SSE transport (remote server)
- * - Tool discovery via tools/list
- * - Tool calling via tools/call
- *
- * Inspired by:
- * - Hermes Agent: tools/mcp_tool.py (5833 lines)
- * - OpenClaw: src/mcp/ (full MCP server + client)
- * - OpenCode: MCP.Service
- */
 @Singleton
 class McpClientManager @Inject constructor() {
 
@@ -45,9 +33,9 @@ class McpClientManager @Inject constructor() {
 
     data class McpServerConfig(
         val name: String,
-        val command: String? = null,      // for stdio transport
+        val command: String? = null,
         val args: List<String> = emptyList(),
-        val url: String? = null,          // for HTTP/SSE transport
+        val url: String? = null,
         val headers: Map<String, String> = emptyMap(),
         val enabled: Boolean = true
     )
@@ -66,19 +54,12 @@ class McpClientManager @Inject constructor() {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    /**
-     * Configure MCP servers.
-     */
     fun configure(servers: List<McpServerConfig>) {
         this.servers.clear()
         this.servers.addAll(servers.filter { it.enabled })
         Log.d(TAG, "Configured ${this.servers.size} MCP servers")
     }
 
-    /**
-     * Discover tools from all configured MCP servers.
-     * Returns tools prefixed with "mcp_<server>_" to avoid naming conflicts.
-     */
     suspend fun discoverAllTools(): List<McpToolSchema> {
         discoveredTools.clear()
         val allTools = mutableListOf<McpToolSchema>()
@@ -93,9 +74,6 @@ class McpClientManager @Inject constructor() {
         return allTools
     }
 
-    /**
-     * Discover tools from a single MCP server using tools/list.
-     */
     private suspend fun discoverServerTools(server: McpServerConfig): List<McpToolSchema> {
         return withContext(Dispatchers.IO) {
             try {
@@ -107,24 +85,18 @@ class McpClientManager @Inject constructor() {
                 }
 
                 val tools = mutableListOf<McpToolSchema>()
-                val json = JsonParser.parseString(response).asJsonObject
-                val result = json?.get("result")?.asJsonObject
-                val toolArray = result?.get("tools")?.asJsonArray
+                val root = JSONObject(response)
+                val result = root.optJSONObject("result")
+                val toolArray = result?.optJSONArray("tools")
 
                 if (toolArray != null) {
-                    for (element in toolArray) {
-                        val obj = element.asJsonObject
-                        val name = obj.get("name")?.asString ?: continue
-                        val desc = obj.get("description")?.asString ?: ""
-                        val schema = obj.get("inputSchema")?.asJsonObject?.let {
-                            gson.fromJson(it, Map::class.java) as? Map<String, Any?>
-                        }
-
-                        tools.add(McpToolSchema(
-                            name = name,
-                            description = desc,
-                            inputSchema = schema
-                        ))
+                    for (i in 0 until toolArray.length()) {
+                        val obj = toolArray.getJSONObject(i)
+                        val name = obj.optString("name", "") ?: ""
+                        if (name.isEmpty()) continue
+                        val desc = obj.optString("description", "") ?: ""
+                        val schema = obj.optJSONObject("inputSchema")?.let { jsonToMap(it) }
+                        tools.add(McpToolSchema(name = name, description = desc, inputSchema = schema))
                     }
                 }
 
@@ -137,10 +109,6 @@ class McpClientManager @Inject constructor() {
         }
     }
 
-    /**
-     * Convert MCP tool schemas to ITool instances.
-     * Each tool is prefixed with "mcp_<serverName>_" to avoid naming conflicts.
-     */
     fun toTools(serverNameFilter: String? = null): List<ITool> {
         val result = mutableListOf<ITool>()
 
@@ -161,9 +129,6 @@ class McpClientManager @Inject constructor() {
         return result
     }
 
-    /**
-     * Execute an MCP tool on a specific server.
-     */
     suspend fun callTool(serverName: String, toolName: String, args: Map<String, Any?>): String {
         return withContext(Dispatchers.IO) {
             val server = servers.find { it.name == serverName }
@@ -185,23 +150,26 @@ class McpClientManager @Inject constructor() {
                 else -> "{\"error\":\"No transport for $serverName\"}"
             }
 
-            // Extract result content
             try {
-                val json = JsonParser.parseString(response).asJsonObject
-                val result = json?.get("result")?.asJsonObject
-                val content = result?.get("content")?.asJsonArray
+                val root = JSONObject(response)
+                val result = root.optJSONObject("result")
+                val content = result?.optJSONArray("content")
 
                 if (content != null) {
-                    content.map { it.asJsonObject.get("text")?.asString ?: "" }
-                        .filter { it.isNotEmpty() }
-                        .joinToString("\n")
+                    val texts = mutableListOf<String>()
+                    for (i in 0 until content.length()) {
+                        val item = content.getJSONObject(i)
+                        val text = item.optString("text", "") ?: ""
+                        if (text.isNotEmpty()) texts.add(text)
+                    }
+                    texts.joinToString("\n")
                 } else {
-                    json?.get("error")?.asJsonObject?.let {
-                        "MCP 错误: ${it.get("message")?.asString}"
+                    root.optJSONObject("error")?.let { err ->
+                        "MCP error: ${err.optString("message", "")}"
                     } ?: response
                 }
             } catch (e: Exception) {
-                "MCP 解析失败: ${e.message}"
+                "MCP parse failed: ${e.message}"
             }
         }
     }
@@ -245,7 +213,7 @@ class McpClientManager @Inject constructor() {
         val finished = process.waitFor(30, TimeUnit.SECONDS)
         if (!finished) {
             process.destroyForcibly()
-            return "{\"error\":\"MCP 服务器超时\"}"
+            return "{\"error\":\"MCP server timeout\"}"
         }
         process.destroy()
         return result
@@ -267,12 +235,14 @@ class McpClientManager @Inject constructor() {
 
     private fun parseParametersFromSchema(schema: Map<String, Any?>?): List<ParameterSchema> {
         if (schema == null) return emptyList()
-        val properties = (schema["properties"] as? Map<*, *>) ?: return emptyList()
-        val required = (schema["required"] as? List<*>)?.map { it.toString() } ?: emptyList()
+        @Suppress("UNCHECKED_CAST")
+        val properties = (schema["properties"] as? Map<String, Any?>) ?: return emptyList()
+        @Suppress("UNCHECKED_CAST")
+        val required = (schema["required"] as? List<String>) ?: emptyList()
 
         return properties.map { (key, value) ->
-            val prop = value as? Map<*, *> ?: return@map null
-            val name = key?.toString() ?: return@map null
+            @Suppress("UNCHECKED_CAST")
+            val prop = value as? Map<String, Any?> ?: return@map null
             val type = when (prop["type"]?.toString()) {
                 "string" -> ParameterType.STRING
                 "integer" -> ParameterType.INTEGER
@@ -283,17 +253,40 @@ class McpClientManager @Inject constructor() {
                 else -> ParameterType.STRING
             }
             ParameterSchema(
-                name = name,
+                name = key,
                 type = type,
                 description = prop["description"]?.toString() ?: "",
-                required = name in required
+                required = key in required
             )
         }.filterNotNull()
     }
 
-    /**
-     * Wrapper to make MCP tools compatible with ITool interface.
-     */
+    private fun jsonToMap(json: JSONObject): Map<String, Any?> {
+        val map = mutableMapOf<String, Any?>()
+        for (key in json.keys()) {
+            val value = json.get(key)
+            map[key] = when (value) {
+                is JSONObject -> jsonToMap(value)
+                is JSONArray -> jsonToList(value)
+                else -> value
+            }
+        }
+        return map
+    }
+
+    private fun jsonToList(json: JSONArray): List<Any?> {
+        val list = mutableListOf<Any?>()
+        for (i in 0 until json.length()) {
+            val value = json.get(i)
+            list.add(when (value) {
+                is JSONObject -> jsonToMap(value)
+                is JSONArray -> jsonToList(value)
+                else -> value
+            })
+        }
+        return list
+    }
+
     class McpToolWrapper(
         override val definition: ToolDefinition,
         private val serverName: String,
@@ -302,8 +295,8 @@ class McpClientManager @Inject constructor() {
     ) : ITool {
         override suspend fun execute(context: ToolContext, args: Map<String, Any?>): ToolResult {
             val result = manager.callTool(serverName, toolName, args)
-            return if (result.startsWith("MCP 错误")) {
-                ToolResult.Error(result.removePrefix("MCP 错误: "))
+            return if (result.startsWith("MCP error")) {
+                ToolResult.Error(result.removePrefix("MCP error: "))
             } else {
                 ToolResult.Success(result)
             }

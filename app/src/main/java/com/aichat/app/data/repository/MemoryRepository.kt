@@ -56,4 +56,29 @@ class MemoryRepository @Inject constructor(
         memoryDao.deleteMemoryById(id)
         terminal.memory(TAG, "删除记忆 id=$id")
     }
+
+    suspend fun getMemoriesByCategory(category: String): List<Memory> =
+        memoryDao.getMemoriesByCategory(category)
+
+    suspend fun recordAccess(id: Long, now: Long = System.currentTimeMillis()) {
+        memoryDao.recordAccess(id, now)
+    }
+
+    suspend fun updateMemory(id: Long, content: String, tags: String, importance: Int) {
+        memoryDao.updateMemory(id, content, tags, importance)
+    }
+
+    suspend fun updateImportance(id: Long, importance: Int) {
+        memoryDao.updateImportance(id, importance)
+    }
+
+    suspend fun pruneMemories(minImportance: Int, before: Long) {
+        memoryDao.pruneMemories(minImportance, before)
+    }
+
+    suspend fun getMemoryCount(): Int = memoryDao.getMemoryCount()
+
+    suspend fun getAllCategories(): List<String> = memoryDao.getAllCategories()
+
+    suspend fun getAllSources(): List<String> = memoryDao.getAllSources()
 }

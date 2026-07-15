@@ -58,8 +58,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jeziellago.compose.markdown.Markdown
-import com.jeziellago.compose.markdown.MarkdownStyle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import com.aichat.app.data.model.Message
@@ -111,7 +109,7 @@ fun MessageBubble(
                 val values = ContentValues().apply {
                     put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
                     put(MediaStore.Images.Media.MIME_TYPE, mime)
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/月下AI")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CodeVibe")
                 }
                 val target: Uri? = context.contentResolver.insert(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
@@ -182,35 +180,13 @@ fun MessageBubble(
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (!message.isRevoked && !isUser) {
-                            Markdown(
-                                content = message.content.ifEmpty { "\u200B" },
+                            Text(
+                                text = message.content.ifEmpty { "\u200B" },
                                 modifier = Modifier
                                     .weight(1f)
                                     .heightIn(max = 320.dp),
-                                style = MarkdownStyle(
-                                    text = MaterialTheme.typography.bodyLarge.copy(
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    codeTextColor = MaterialTheme.colorScheme.onSurface,
-                                    codeBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                                    h1TextStyle = TextStyle(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 20.sp
-                                    ),
-                                    h2TextStyle = TextStyle(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    ),
-                                    h3TextStyle = TextStyle(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
-                                    ),
-                                    linkTextColor = MaterialTheme.colorScheme.primary,
-                                    quoteTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    quoteBackgroundColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                         } else {

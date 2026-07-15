@@ -2,7 +2,7 @@ package com.aichat.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ===== 月下主题 · 深邃夜空 + 月光银白 =====
+// ===== CodeVibe · Vibe Coding 主题 =====
 
 // ---------- Light ----------
 val md_theme_light_primary = Color(0xFF0B6B7B)
@@ -47,7 +47,7 @@ val md_theme_light_surfaceContainerLowest = Color(0xFFFFFFFF)
 val md_theme_light_surfaceBright = Color(0xFFFBFCFD)
 val md_theme_light_surfaceDim = Color(0xFFD9DBDD)
 
-// ---------- Dark (月下夜空) ----------
+// ---------- Dark ----------
 val md_theme_dark_primary = Color(0xFF6FD0E0)
 val md_theme_dark_onPrimary = Color(0xFF00363D)
 val md_theme_dark_primaryContainer = Color(0xFF004F5A)

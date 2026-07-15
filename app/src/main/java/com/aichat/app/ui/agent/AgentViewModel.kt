@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aichat.app.agent.AgentLoop
+import com.aichat.app.agent.AgentLoop.AgentStatus
 import com.aichat.app.agent.ToolContext
 import com.aichat.app.agent.ToolRegistry
 import com.aichat.app.mcp.McpClientManager
@@ -16,15 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class AgentStatus(
-    val phase: String = "idle",
-    val currentTool: String? = null,
-    val toolProgress: Int = 0,
-    val totalTools: Int = 0,
-    val tokensUsed: Int = 0,
-    val elapsedMs: Long = 0
-)
 
 data class PendingPermission(
     val action: String,

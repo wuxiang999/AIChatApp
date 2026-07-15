@@ -30,7 +30,12 @@ import com.aichat.app.ui.conversations.ConversationsScreen
 import com.aichat.app.ui.conversations.ConversationsViewModel
 import com.aichat.app.ui.mcp.McpScreen
 import com.aichat.app.ui.memory.MemoryScreen
+import com.aichat.app.ui.settings.AboutScreen
+import com.aichat.app.ui.settings.AgentSettingsScreen
+import com.aichat.app.ui.settings.EndpointSettingsScreen
+import com.aichat.app.ui.settings.GitSettingsScreen
 import com.aichat.app.ui.settings.SettingsScreen
+import com.aichat.app.ui.settings.WorkspaceSettingsScreen
 import com.aichat.app.ui.skills.SkillsScreen
 import com.aichat.app.ui.imagegen.ImageGenScreen
 import com.aichat.app.ui.terminal.TerminalScreen
@@ -50,10 +55,15 @@ sealed class Screen(val route: String) {
     object Memory : Screen("memory")
     object ImageGen : Screen("image_gen")
     object Agent : Screen("agent")
+    object SettingsWorkspace : Screen("settings/workspace")
+    object SettingsEndpoints : Screen("settings/endpoints")
+    object SettingsAgent : Screen("settings/agent")
+    object SettingsGit : Screen("settings/git")
+    object SettingsAbout : Screen("settings/about")
 }
 
 @Composable
-fun AIChatNavHost(
+fun CodeVibeNavHost(
     navController: NavHostController,
     snackbarHostState: SnackbarHostState,
     onRouteChange: (String?) -> Unit,
@@ -170,7 +180,38 @@ fun AIChatNavHost(
 
         composable(Screen.Settings.route) {
             onRouteChange(Screen.Settings.route)
-            SettingsScreen()
+            SettingsScreen(
+                onNavigateToWorkspace = { navController.navigate(Screen.SettingsWorkspace.route) },
+                onNavigateToEndpoints = { navController.navigate(Screen.SettingsEndpoints.route) },
+                onNavigateToAgent = { navController.navigate(Screen.SettingsAgent.route) },
+                onNavigateToGit = { navController.navigate(Screen.SettingsGit.route) },
+                onNavigateToAbout = { navController.navigate(Screen.SettingsAbout.route) }
+            )
+        }
+
+        composable(Screen.SettingsWorkspace.route) {
+            onRouteChange(Screen.SettingsWorkspace.route)
+            WorkspaceSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.SettingsEndpoints.route) {
+            onRouteChange(Screen.SettingsEndpoints.route)
+            EndpointSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.SettingsAgent.route) {
+            onRouteChange(Screen.SettingsAgent.route)
+            AgentSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.SettingsGit.route) {
+            onRouteChange(Screen.SettingsGit.route)
+            GitSettingsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.SettingsAbout.route) {
+            onRouteChange(Screen.SettingsAbout.route)
+            AboutScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Agents.route) {

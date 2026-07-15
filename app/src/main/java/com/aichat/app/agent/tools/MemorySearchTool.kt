@@ -30,7 +30,7 @@ class MemorySearchTool @Inject constructor(
     )
 
     override suspend fun execute(context: ToolContext, args: Map<String, Any?>): ToolResult {
-        val query = args["query"]?.toString() ?: return ToolResult.Error("缺少 query 参数")
+        val query = args["query"]?.toString() ?: return ToolResult.Error("Missing query parameter")
         val limit = (args["limit"] as? Number)?.toInt() ?: 5
         val category = args["category"]?.toString()
 
@@ -43,18 +43,19 @@ class MemorySearchTool @Inject constructor(
 
             memories.forEach { memoryRepository.recordAccess(it.id) }
 
+
             if (memories.isEmpty()) {
-                ToolResult.Success("未找到相关记忆")
+                ToolResult.Success("No relevant memories found")
             } else {
                 val result = memories.take(limit).joinToString("\n") { mem ->
                     "[${mem.importance}★][${mem.category}] ${mem.content}"
                 }
                 val total = memories.size
-                val note = if (total > limit) "（共$total条，仅显示前$limit条）" else ""
-                ToolResult.Success("找到 $total 条相关记忆：\n$result${note}")
+                val note = if (total > limit) "($total total, showing first $limit)" else ""
+                ToolResult.Success("Found $total related memories:\n$result${note}")
             }
         } catch (e: Exception) {
-            ToolResult.Error("搜索记忆失败: ${e.message}")
+            ToolResult.Error("Memory search failed: ${e.message}")
         }
     }
 }

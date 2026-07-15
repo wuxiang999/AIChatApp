@@ -3,6 +3,7 @@ package com.aichat.app.ui.chat
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -344,7 +345,7 @@ private fun EmptyChatState(modifier: Modifier = Modifier) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "月",
+                text = "C",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontWeight = FontWeight.Bold
@@ -352,14 +353,14 @@ private fun EmptyChatState(modifier: Modifier = Modifier) {
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "月下AI",
+            text = "CodeVibe",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "本地AI聊天助手",
+            text = "Vibe Coding Agent",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
